@@ -2,15 +2,17 @@ package ast
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/gsdocker/gserrors"
 )
 
-//Parser parser interface
-type Parser interface {
-}
+//errors defined in package ast
+var (
+	ErrAST = errors.New("ast contract check err")
+)
 
 //Node ast Node object
 type Node interface {
@@ -26,8 +28,6 @@ type Node interface {
 	SetParent(parent Node) Node
 	//Package The node belongs Package
 	Package() *Package
-	//Parser The node belongs parser
-	Parser() Parser
 	//Attrs get the attrs table
 	Attrs() []*Attr
 	//DelAttr Delete target attr from attribute table
@@ -104,15 +104,6 @@ func (node *BasicNode) Path() string {
 	}
 
 	return writer.String()
-}
-
-//Parser implement Node interface
-func (node *BasicNode) Parser() Parser {
-	if node.Parent() == nil {
-		return nil
-	}
-
-	return node.Parent().Parser()
 }
 
 //Package implement Node interface
@@ -204,7 +195,9 @@ type BasicExpr struct {
 
 //Init implement Expr interface
 func (node *BasicExpr) Init(name string, script *Script) {
-	defer gserrors.Ensure(script != nil, "the script param can't be nil")
+	defer gserrors.Ensure(func() bool {
+		return script != nil
+	}, "the script param can't be nil")
 	node.BasicNode.Init(name, nil)
 	node.script = script
 }
