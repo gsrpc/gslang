@@ -30,10 +30,10 @@ type Node interface {
 	Package() *Package
 	//Attrs get the attrs table
 	Attrs() []*Attr
-	//DelAttr Delete target attr from attribute table
-	DelAttr(attr *Attr)
-	//NewAttr add new attr to attribute table
-	NewAttr(attr *Attr)
+	//AddAttr Delete target attr from attribute table
+	AddAttr(attr *Attr)
+	//RemoveAttr add new attr to attribute table
+	RemoveAttr(attr *Attr)
 	//NewExtra add new extra data,return old extra data with same name
 	NewExtra(name string, data interface{})
 	//Extra get extra data by name
@@ -139,8 +139,8 @@ func (node *BasicNode) Attrs() []*Attr {
 	return node.attrs
 }
 
-//NewAttr implement Node interface
-func (node *BasicNode) NewAttr(attr *Attr) {
+//AddAttr implement Node interface
+func (node *BasicNode) AddAttr(attr *Attr) {
 	for _, old := range node.attrs {
 		if old == attr {
 			return
@@ -152,8 +152,8 @@ func (node *BasicNode) NewAttr(attr *Attr) {
 	node.attrs = append(node.attrs, attr)
 }
 
-//DelAttr implement Node interface
-func (node *BasicNode) DelAttr(attr *Attr) {
+//RemoveAttr implement Node interface
+func (node *BasicNode) RemoveAttr(attr *Attr) {
 	var attrs []*Attr
 	for _, old := range node.attrs {
 		if old == attr {
