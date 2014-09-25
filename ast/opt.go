@@ -13,3 +13,16 @@ func (node *Script) NewBinaryOp(name string) *BinaryOp {
 	op.Init(name, node)
 	return op
 }
+
+//UnaryOp AST binary operation node
+type UnaryOp struct {
+	BasicExpr      //Mixin basic expr implement
+	Right     Expr //Left hand expr
+}
+
+//NewUnaryOp create new binaryOp
+func (node *Script) NewUnaryOp(name string) *UnaryOp {
+	op := &UnaryOp{}
+	op.Init(name, node)
+	return op
+}

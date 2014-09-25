@@ -1,6 +1,9 @@
 package gslang
 
-import "path/filepath"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 //Position position of source code file
 type Position struct {
@@ -12,4 +15,8 @@ type Position struct {
 //ShortName get the source code file short name
 func (pos Position) ShortName() string {
 	return filepath.Base(pos.FileName)
+}
+
+func (pos Position) String() string {
+	return fmt.Sprintf("%s(%d,%d)", pos.FileName, pos.Lines, pos.Column)
 }
