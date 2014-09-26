@@ -8,8 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang/ast"
 	"github.com/gsdocker/gslogger"
+)
+
+//ErrComileS public errors
+var (
+	ErrCompileS = errors.New("CompileS error")
 )
 
 func setFilePath(node ast.Node, fullPath string) {
@@ -29,7 +35,7 @@ func NewCompileS() *CompileS {
 	GOPATH := os.Getenv("GOPATH")
 
 	if GOPATH == "" {
-		panic(errors.New("must set GOPATH first"))
+		gserrors.Newf(ErrCompileS, "must set GOPATH first")
 	}
 	return &CompileS{
 		Log:    gslogger.Get("gslang"),
@@ -57,8 +63,7 @@ func (cs *CompileS) searchPackage(packageName string) string {
 		for i, path := range found {
 			stream.WriteString(fmt.Sprintf("\n\t%d) %s", i, path))
 		}
-
-		panic(errors.New(stream.String()))
+		gserrors.Newf(ErrCompileS, stream.String())
 	}
 
 	return found[0]
@@ -100,6 +105,8 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 
 	pkg = ast.NewPackage(packageName)
 
+	cs.loading = append(cs.loading, pkg)
+
 	err = filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
 
 		if err != nil {
@@ -110,11 +117,11 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 			return filepath.SkipDir
 		}
 
-		if filepath.Ext(info.Name()) != ".tap" {
+		if filepath.Ext(info.Name()) != ".gs" {
 			return nil
 		}
 
-		script, err := parse(pkg, path)
+		script, err := cs.parse(pkg, path)
 
 		if err == nil {
 			setFilePath(script, path)
@@ -124,20 +131,9 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	})
 
 	if err != nil {
+		cs.loading = cs.loading[:len(cs.loading)-1]
+		err = gserrors.Newf(err, "open package err :%s", fullPath)
 		return
-	}
-
-	cs.loading = append(cs.loading, pkg)
-
-	for _, script := range pkg.Scripts {
-
-		for _, imp := range script.Imports {
-			_, err = cs.Compile(imp.Name())
-
-			if err != nil {
-				return
-			}
-		}
 	}
 
 	// cs._Link(pkg)

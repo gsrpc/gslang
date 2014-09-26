@@ -44,6 +44,7 @@ const (
 	KeyStruct
 	KeyTable
 	KeyContract
+	KeyImport
 )
 
 var tokenName = map[rune]string{
@@ -68,6 +69,7 @@ var tokenName = map[rune]string{
 	KeyStruct:    "struct",
 	KeyTable:     "table",
 	KeyContract:  "contract",
+	KeyImport:    "import",
 }
 
 var keyMap = map[string]rune{
@@ -86,6 +88,7 @@ var keyMap = map[string]rune{
 	"struct":   KeyStruct,
 	"table":    KeyTable,
 	"contract": KeyContract,
+	"import":   KeyImport,
 }
 
 //TokenName get token string
@@ -99,9 +102,9 @@ func TokenName(token rune) string {
 
 //Token the gslang token object
 type Token struct {
-	Type     rune        //token type
-	Value    interface{} //token value
-	Position Position    //token position in source file
+	Type  rune        //token type
+	Value interface{} //token value
+	Pos   Position    //token position in source file
 }
 
 //NewToken create new token with type and token value
@@ -118,14 +121,14 @@ func (token *Token) String() string {
 			"token[%s]\n\tval :%v\n\tpos :%s",
 			TokenName(token.Type),
 			token.Value,
-			token.Position,
+			token.Pos,
 		)
 	}
 
 	return fmt.Sprintf(
 		"token[%s]\n\tpos :%s",
 		TokenName(token.Type),
-		token.Position,
+		token.Pos,
 	)
 
 }
@@ -224,8 +227,6 @@ func isDecimal(ch rune) bool {
 //next read next gslang token
 func (lexer *Lexer) next() (token *Token, err error) {
 
-	position := lexer.position
-
 	if TokenEOF == lexer.curr {
 		if err = lexer.nextChar(); err != nil {
 			return
@@ -236,7 +237,7 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	for lexer.ws&(1<<uint(lexer.curr)) != 0 {
 		//increase lines count
 		if lexer.curr == '\n' {
-			lexer.position.Column = 1
+			lexer.position.Column = 0
 			lexer.position.Lines++
 		}
 
@@ -244,12 +245,16 @@ func (lexer *Lexer) next() (token *Token, err error) {
 			return
 		}
 	}
+
 	//check if arrived end of file
 	if lexer.curr == TokenEOF {
 		token = NewToken(TokenEOF, nil)
-		token.Position = position
+		token.Pos = lexer.position
 		return
 	}
+
+	position := lexer.position
+
 	switch {
 	case unicode.IsLetter(lexer.curr) || lexer.curr == '_': //scan id
 		token, err = lexer.scanID()
@@ -294,7 +299,7 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	}
 
 	if err == nil {
-		token.Position = position
+		token.Pos = position
 	}
 
 	return
@@ -331,7 +336,7 @@ func (lexer *Lexer) scanComment(ch rune) (*Token, error) {
 		}
 
 		if lexer.curr == '\n' {
-			lexer.position.Column = 1
+			lexer.position.Column = 0
 			lexer.position.Lines++
 		}
 
@@ -403,7 +408,6 @@ func (lexer *Lexer) scanString(quote rune) (token *Token, err error) {
 	if err != nil {
 		return nil, err
 	}
-
 	token = NewToken(TokenSTRING, buff.String())
 
 	return
@@ -439,8 +443,6 @@ func digitVal(ch rune) int {
 //scanNum read number token
 func (lexer *Lexer) scanNum() (*Token, error) {
 
-	lexer.D("scan num")
-
 	var buff bytes.Buffer
 
 	if lexer.curr == '0' {
@@ -465,7 +467,7 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 			if err != nil {
 				return nil, lexer.newerror(err.Error())
 			}
-			lexer.D("scan num finish :%s", buff.String())
+
 			return NewToken(TokenINT, val), nil
 		}
 	}
@@ -485,8 +487,6 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 			return nil, lexer.newerror(err.Error())
 		}
 
-		lexer.D("scan num finish :%s", buff.String())
-
 		return NewToken(TokenFLOAT, val), nil
 	}
 
@@ -495,7 +495,6 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 	if err != nil {
 		return nil, lexer.newerror(err.Error())
 	}
-	lexer.D("scan num finish :%s", buff.String())
 	return NewToken(TokenINT, val), nil
 }
 
@@ -526,31 +525,31 @@ func (lexer *Lexer) scanExponent(buff *bytes.Buffer) {
 	}
 }
 
-// //Peek peek next token
-// func (lexer *Lexer) Peek() (token *Token, err error) {
-// 	if lexer.token != nil {
-// 		token = lexer.token
-// 		return
-// 	}
-//
-// 	token, err = lexer.next()
-//
-// 	if err != nil {
-// 		lexer.token = token
-// 	}
-//
-// 	return
-// }
-//
-// //Next get next token and move lexer's cursor
-// func (lexer *Lexer) Next() (token *Token, err error) {
-//
-// 	if lexer.token != nil {
-// 		token, lexer.token = lexer.token, nil
-// 		return
-// 	}
-//
-// 	token, err = lexer.next()
-//
-// 	return
-// }
+//Peek peek next token
+func (lexer *Lexer) Peek() (token *Token, err error) {
+	if lexer.token != nil {
+
+		token = lexer.token
+		return
+	}
+
+	token, err = lexer.next()
+	if err == nil {
+		lexer.token = token
+	}
+
+	return
+}
+
+//Next get next token and move lexer's cursor
+func (lexer *Lexer) Next() (token *Token, err error) {
+
+	if lexer.token != nil {
+		token, lexer.token = lexer.token, nil
+		return
+	}
+
+	token, err = lexer.next()
+
+	return
+}

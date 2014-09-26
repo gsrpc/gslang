@@ -8,7 +8,7 @@ import (
 )
 
 func tokenCheck(lexer *Lexer, expect rune, val interface{}) {
-	token, err := lexer.next()
+	token, err := lexer.Next()
 
 	if err != nil {
 		panic(err)
@@ -203,4 +203,24 @@ func TestLexerKeyWorld(t *testing.T) {
 	tokenCheck(lexer, KeyInt32, nil)
 	tokenCheck(lexer, KeyInt64, nil)
 	tokenCheck(lexer, TokenID, "int32int64")
+}
+
+func TestLexerPeek(t *testing.T) {
+
+	var buff bytes.Buffer
+
+	buff.WriteString(`
+		int32 float
+
+		int32int64
+		`)
+
+	lexer := NewLexer("test", &buff)
+
+	token, _ := lexer.Peek()
+	token2, _ := lexer.Peek()
+
+	if token.Type != token2.Type {
+		t.Fatal("peek test failed")
+	}
 }

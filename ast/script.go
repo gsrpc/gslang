@@ -4,10 +4,10 @@ import "github.com/gsdocker/gserrors"
 
 //Script AST script node
 type Script struct {
-	BasicNode                     //Inher from default Node
-	Imports   map[string]*Package //import packages
-	Types     []Expr              //types defined in this script
-	pkg       *Package            //script belongs package
+	BasicNode                        //Inher from default Node
+	Imports   map[string]*PackageRef //import packages
+	Types     []Expr                 //types defined in this script
+	pkg       *Package               //script belongs package
 }
 
 //NewScript create new script node
@@ -28,7 +28,7 @@ func (node *Package) NewScript(name string) (script *Script, err error) {
 	}, "make sure init the Imports field")
 
 	script = &Script{
-		Imports: make(map[string]*Package),
+		Imports: make(map[string]*PackageRef),
 		pkg:     node,
 	}
 	//call BasicNode's init function
@@ -37,6 +37,31 @@ func (node *Package) NewScript(name string) (script *Script, err error) {
 	node.Scripts[name] = script
 
 	return
+}
+
+//PackageRef the package reference node
+type PackageRef struct {
+	BasicNode          //Mixin basic node implement
+	Ref       *Package //reference package node,maybe nil
+}
+
+//NewPackageRef create new package reference node object
+func (node *Script) NewPackageRef(name string, pkg *Package) (ref *PackageRef, ok bool) {
+
+	if ref, ok = node.Imports[name]; ok {
+		ok = !ok
+		return
+	}
+
+	ref = &PackageRef{
+		Ref: pkg,
+	}
+
+	ref.Init(name, node)
+
+	node.Imports[name] = ref
+
+	return ref, true
 }
 
 //NewType create new type node for this script

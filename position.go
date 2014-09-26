@@ -20,3 +20,12 @@ func (pos Position) ShortName() string {
 func (pos Position) String() string {
 	return fmt.Sprintf("%s(%d,%d)", pos.FileName, pos.Lines, pos.Column)
 }
+
+//Valid check if the position object is valid
+func (pos Position) Valid() bool {
+	if pos.Lines != 0 {
+		return true
+	}
+
+	return false
+}
