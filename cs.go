@@ -87,21 +87,23 @@ func (cs *CompileS) circularRefCheck(packageName string) {
 func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			err = e.(error)
-			cs.D("Compile err :%s", err)
+			if _, ok := e.(gserrors.GSError); ok {
+				err = e.(error)
+			} else {
+				err = gserrors.New(e.(error))
+			}
 		}
 	}()
+
 	//跳过已经加载的包
 	if _, ok := cs.Loaded[packageName]; ok {
-		cs.D("skip compiled package :%s ", packageName)
+		//cs.D("skip compiled package :%s ", packageName)
 		return
 	}
 	//循环引用检测
 	cs.circularRefCheck(packageName)
 
 	fullPath := cs.searchPackage(packageName)
-
-	cs.D("loading package :%s\n\tfullpath:%s", packageName, fullPath)
 
 	pkg = ast.NewPackage(packageName)
 
@@ -132,7 +134,6 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 
 	if err != nil {
 		cs.loading = cs.loading[:len(cs.loading)-1]
-		err = gserrors.Newf(err, "open package err :%s", fullPath)
 		return
 	}
 
@@ -141,8 +142,6 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	// cs._MoveAttr(pkg)
 
 	cs.loading = cs.loading[:len(cs.loading)-1]
-
 	cs.Loaded[packageName] = pkg
-
 	return
 }

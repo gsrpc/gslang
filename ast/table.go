@@ -6,6 +6,7 @@ import "github.com/gsdocker/gserrors"
 type Field struct {
 	BasicExpr        //Inher default node implement
 	ID        uint16 //Schema define field index
+	Type      Expr   //field type
 }
 
 //Table AST table type node

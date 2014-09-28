@@ -1,7 +1,6 @@
 package gslang
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/gsdocker/gslogger"
@@ -33,18 +32,15 @@ func TestParseImports(t *testing.T) {
 		t.Fatal("test script comments failed")
 	}
 
-	for _, comment := range comments {
-		fmt.Println("comment", comment.Value.(string))
-	}
-
 	comments = Comments(testing)
 
 	if comments == nil {
 		t.Fatal("test import comments failed")
 	}
 
-	for _, comment := range comments {
-		fmt.Println("comment", comment.Value.(string))
-	}
+	attrs := script.Attrs()
 
+	if 3 != len(attrs) {
+		t.Fatal("test attribute failed")
+	}
 }

@@ -8,8 +8,8 @@ type BinaryOp struct {
 }
 
 //NewBinaryOp create new binaryOp
-func (node *Script) NewBinaryOp(name string) *BinaryOp {
-	op := &BinaryOp{}
+func (node *Script) NewBinaryOp(name string, left Expr, right Expr) *BinaryOp {
+	op := &BinaryOp{Left: left, Right: right}
 	op.Init(name, node)
 	return op
 }

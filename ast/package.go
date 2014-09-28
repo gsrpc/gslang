@@ -27,5 +27,5 @@ func (node *Package) NewType(expr Expr) (Expr, bool) {
 
 	node.Types[expr.Name()] = expr
 
-	return nil, true
+	return expr, true
 }

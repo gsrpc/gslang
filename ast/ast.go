@@ -30,9 +30,11 @@ type Node interface {
 	Package() *Package
 	//Attrs get the attrs table
 	Attrs() []*Attr
-	//AddAttr Delete target attr from attribute table
+	//AddAttr add target attr to attribute table
 	AddAttr(attr *Attr)
-	//RemoveAttr add new attr to attribute table
+	//AddAttrs add atts
+	AddAttrs(attr []*Attr)
+	//RemoveAttr remove attr to attribute table
 	RemoveAttr(attr *Attr)
 	//NewExtra add new extra data,return old extra data with same name
 	NewExtra(name string, data interface{})
@@ -150,6 +152,13 @@ func (node *BasicNode) AddAttr(attr *Attr) {
 	attr.SetParent(node)
 
 	node.attrs = append(node.attrs, attr)
+}
+
+//AddAttrs implement Node interface
+func (node *BasicNode) AddAttrs(attrs []*Attr) {
+	for _, attr := range attrs {
+		node.AddAttr(attr)
+	}
 }
 
 //RemoveAttr implement Node interface

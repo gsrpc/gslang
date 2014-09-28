@@ -14,9 +14,11 @@ func (node *Script) NewArgs() *Args {
 }
 
 //NewArg add new arg node to args
-func (expr *Args) NewArg(arg Expr) {
+func (expr *Args) NewArg(arg Expr) Expr {
 	expr.Items = append(expr.Items, arg)
 	arg.SetParent(expr)
+
+	return arg
 }
 
 //NamedArgs AST named args node

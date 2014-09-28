@@ -38,3 +38,16 @@ func (node *Script) NewInt(val int64) *Int {
 	expr.Init("int", node)
 	return expr
 }
+
+//Bool literal int node
+type Bool struct {
+	BasicExpr      //Mixin basic expr implement
+	Value     bool //literal string content
+}
+
+//NewBool create new literal integer node
+func (node *Script) NewBool(val bool) *Bool {
+	expr := &Bool{Value: val}
+	expr.Init("int", node)
+	return expr
+}

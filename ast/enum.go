@@ -12,10 +12,21 @@ type EnumVal struct {
 type Enum struct {
 	BasicExpr                     //mixin default expr implement
 	Values    map[string]*EnumVal //enum values table
+	Length    uint                //enum type length
+	Signed    bool                //the enum numer signed flag
 }
 
 //NewEnum create new enum node object
-func (node *Script) NewEnum(name string) (expr *Enum) {
+func (node *Script) NewEnum(name string, length uint, signed bool) (expr *Enum) {
+	gserrors.Require(func() bool {
+		switch length {
+		case 1, 2, 4:
+			return true
+		default:
+			return false
+		}
+
+	}(), "the enum type length can only be 1,2,4,got :%d", length)
 
 	defer gserrors.Ensure(func() bool {
 		return expr.Values != nil
@@ -23,9 +34,13 @@ func (node *Script) NewEnum(name string) (expr *Enum) {
 
 	expr = &Enum{
 		Values: make(map[string]*EnumVal),
+		Length: length,
+		Signed: signed,
 	}
 
 	expr.Init(name, node)
+
+	expr.SetParent(node)
 
 	return expr
 }
@@ -47,7 +62,7 @@ func (expr *Enum) NewVal(name string, val int64) (result *EnumVal, ok bool) {
 	}
 
 	result.Init(name, expr.Script())
-	result.SetParent(expr)
+
 	expr.Values[name] = result
 	ok = true
 	return

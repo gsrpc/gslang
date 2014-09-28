@@ -72,6 +72,7 @@ func (node *Script) NewType(expr Expr) (old Expr, ok bool) {
 
 	if ok {
 		node.Types = append(node.Types, expr)
+		expr.SetParent(node)
 	}
 
 	return

@@ -29,6 +29,8 @@ const (
 	TokenFalse
 	TokenSTRING
 	TokenCOMMENT
+	TokenLABEL
+	TokenArrowRight
 	KeyByte
 	KeySByte
 	KeyInt16
@@ -39,6 +41,7 @@ const (
 	KeyUInt64
 	KeyFloat32
 	KeyFloat64
+	KeyString
 	KeyBool
 	KeyEnum
 	KeyStruct
@@ -48,28 +51,31 @@ const (
 )
 
 var tokenName = map[rune]string{
-	TokenEOF:     "EOF",
-	TokenID:      "ID",
-	TokenINT:     "INT",
-	TokenFLOAT:   "FLOAT",
-	TokenSTRING:  "STRING",
-	TokenCOMMENT: "COMMENT",
-	KeyByte:      "byte",
-	KeySByte:     "sbyte",
-	KeyInt16:     "int16",
-	KeyUInt16:    "uint16",
-	KeyInt32:     "int32",
-	KeyUInt32:    "uint32",
-	KeyInt64:     "int64",
-	KeyUInt64:    "uint64",
-	KeyFloat32:   "float32",
-	KeyFloat64:   "float64",
-	KeyBool:      "bool",
-	KeyEnum:      "enum",
-	KeyStruct:    "struct",
-	KeyTable:     "table",
-	KeyContract:  "contract",
-	KeyImport:    "import",
+	TokenEOF:        "EOF",
+	TokenID:         "ID",
+	TokenINT:        "INT",
+	TokenFLOAT:      "FLOAT",
+	TokenSTRING:     "STRING",
+	TokenCOMMENT:    "COMMENT",
+	TokenLABEL:      "LABLE",
+	TokenArrowRight: "->",
+	KeyByte:         "byte",
+	KeySByte:        "sbyte",
+	KeyInt16:        "int16",
+	KeyUInt16:       "uint16",
+	KeyInt32:        "int32",
+	KeyUInt32:       "uint32",
+	KeyInt64:        "int64",
+	KeyUInt64:       "uint64",
+	KeyFloat32:      "float32",
+	KeyFloat64:      "float64",
+	KeyString:       "string",
+	KeyBool:         "bool",
+	KeyEnum:         "enum",
+	KeyStruct:       "struct",
+	KeyTable:        "table",
+	KeyContract:     "contract",
+	KeyImport:       "import",
 }
 
 var keyMap = map[string]rune{
@@ -83,6 +89,7 @@ var keyMap = map[string]rune{
 	"uint64":   KeyUInt64,
 	"float32":  KeyFloat32,
 	"float64":  KeyFloat64,
+	"string":   KeyString,
 	"bool":     KeyBool,
 	"enum":     KeyEnum,
 	"struct":   KeyStruct,
@@ -168,6 +175,7 @@ func (lexer *Lexer) newerror(fmtstring string, args ...interface{}) error {
 
 //nextChar read next utf-8 character
 func (lexer *Lexer) nextChar() error {
+
 	c, err := lexer.reader.ReadByte()
 
 	if err != nil {
@@ -267,10 +275,12 @@ func (lexer *Lexer) next() (token *Token, err error) {
 				token.Type = TokenTrue
 			} else if id == "false" {
 				token.Type = TokenFalse
+			} else if key, ok := keyMap[id]; ok {
+				token.Type = key
 			} else {
-				if key, ok := keyMap[id]; ok {
-
-					token.Type = key
+				if lexer.curr == ':' {
+					token.Type = TokenLABEL
+					lexer.nextChar()
 				}
 			}
 		}
@@ -290,6 +300,20 @@ func (lexer *Lexer) next() (token *Token, err error) {
 				token, err = lexer.scanComment(lexer.curr)
 			} else {
 				token = NewToken(lexer.curr, nil)
+			}
+		}
+
+	case '-' == lexer.curr:
+
+		err = lexer.nextChar()
+
+		if err == nil {
+			//scan comment
+			if lexer.curr == '>' {
+				token = NewToken(TokenArrowRight, nil)
+				err = lexer.nextChar()
+			} else {
+				token = NewToken('-', nil)
 			}
 		}
 
