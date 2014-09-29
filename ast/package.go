@@ -29,3 +29,8 @@ func (node *Package) NewType(expr Expr) (Expr, bool) {
 
 	return expr, true
 }
+
+//Package create new type belong to this package
+func (node *Package) Package() *Package {
+	return node
+}

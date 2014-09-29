@@ -1,7 +1,12 @@
 
+table Any {
+    hello [1]int32;
+}
+
+[Any]
 
 //Who interface
 contract Who {
     //WhoAreYou get user name
-    WhoAreYou() -> ([test]string /*user name*/,int)
+    WhoAreYou() -> (string /*user name*/,int32)
 }

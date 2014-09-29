@@ -83,6 +83,17 @@ func (cs *CompileS) circularRefCheck(packageName string) {
 	}
 }
 
+func (cs *CompileS) errorf(position Position, fmtstring string, args ...interface{}) {
+	gserrors.Panicf(
+		ErrParse,
+		fmt.Sprintf(
+			"parse %s error : %s",
+			position,
+			fmt.Sprintf(fmtstring, args...),
+		),
+	)
+}
+
 //Compile 编译指定的包
 func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	defer func() {
@@ -95,9 +106,19 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 		}
 	}()
 
+	defer gserrors.Ensure(func() bool {
+		if err == nil {
+			return pkg != nil
+		}
+
+		return true
+
+	}, "if err == nil ,the return pkg param can't be nil")
+
 	//跳过已经加载的包
-	if _, ok := cs.Loaded[packageName]; ok {
+	if loaded, ok := cs.Loaded[packageName]; ok {
 		//cs.D("skip compiled package :%s ", packageName)
+		pkg = loaded
 		return
 	}
 	//循环引用检测
@@ -137,7 +158,7 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 		return
 	}
 
-	// cs._Link(pkg)
+	cs.link(pkg)
 	//
 	// cs._MoveAttr(pkg)
 

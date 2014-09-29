@@ -10,11 +10,11 @@ enum AttrTarget {
     Param(128)
 }
 
-[AttrUsage(AttrUsage.Table)]
+[AttrUsage(AttrTarget.Table)]
 table AttrUsage {
     Target AttrTarget;
 }
 
 //indicate AST node table is a struct
-[AttrUsage(AttrUsage.Table)]
+[AttrUsage(AttrTarget.Table)]
 table Struct {}

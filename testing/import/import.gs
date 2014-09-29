@@ -3,10 +3,12 @@ import (
     "github.com/gsdocker/gslang/testing" //import testing
 )
 
+[gslang.AttrUsage(gslang.AttrTarget.Table)]
+table test {status bool;}
 
 //hello
 [test()] //world
 //import test
 
-[test1] //world
-[test2(false)] //world
+[test] //world
+[test(false)] //world

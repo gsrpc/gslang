@@ -7,11 +7,16 @@ import (
 	"reflect"
 
 	"github.com/gsdocker/gserrors"
+	"github.com/gsdocker/gslogger"
 )
 
 //errors defined in package ast
 var (
 	ErrAST = errors.New("ast contract check err")
+)
+
+var (
+	log = gslogger.Get("ast")
 )
 
 //Node ast Node object
@@ -43,7 +48,7 @@ type Node interface {
 	//DelExtra delete extra data by name
 	DelExtra(name string)
 	//Accept implement visitor design pattern
-	Accept(visitor Visitor)
+	Accept(visitor Visitor) Node
 }
 
 //Path Get node's AST path
@@ -148,7 +153,8 @@ func (node *BasicNode) AddAttr(attr *Attr) {
 			return
 		}
 	}
-
+	//fuck go, the attr's parent is *BasicNode
+	//not real node type who mixin basicnode
 	attr.SetParent(node)
 
 	node.attrs = append(node.attrs, attr)
@@ -192,8 +198,9 @@ func (node *BasicNode) DelExtra(name string) {
 }
 
 //Accept implement Node interface
-func (node *BasicNode) Accept(Visitor) {
+func (node *BasicNode) Accept(Visitor) Node {
 	gserrors.Panicf(nil, "type(%s) not implement Accept", reflect.TypeOf(node))
+	return nil
 }
 
 //BasicExpr default implement of Expr interface
@@ -215,4 +222,9 @@ func (node *BasicExpr) Init(name string, script *Script) {
 func (node *BasicExpr) Script() *Script {
 	gserrors.Require(node.script != nil, "the script param can't be nil")
 	return node.script
+}
+
+//Package implement Node interface
+func (node *BasicExpr) Package() *Package {
+	return node.script.Package()
 }

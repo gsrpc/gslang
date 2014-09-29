@@ -78,7 +78,7 @@ func (node *Script) NewType(expr Expr) (old Expr, ok bool) {
 	return
 }
 
-//Package override Package function implement
+//Package implement Node interface
 func (node *Script) Package() *Package {
 	return node.pkg
 }

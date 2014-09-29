@@ -2,13 +2,13 @@ package ast
 
 //Attr AST attribute node
 type Attr struct {
-	BasicExpr      //Mixin basic expr implement
-	Type      Expr //attribute type ref
-	Args      Expr //the argument list,maybe nil
+	BasicExpr          //Mixin basic expr implement
+	Type      *TypeRef //attribute type ref
+	Args      Expr     //the argument list,maybe nil
 }
 
 //NewAttr create new attr node
-func (node *Script) NewAttr(attrType Expr) *Attr {
+func (node *Script) NewAttr(attrType *TypeRef) *Attr {
 	expr := &Attr{
 		Type: attrType,
 	}

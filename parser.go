@@ -311,15 +311,13 @@ func (parser *Parser) parseContract() {
 
 				parser.parseAttrs()
 
-				param := parser.parseType()
+				param := method.NewParam(parser.parseType())
+				attachPos(param, Pos(param.Type))
 
 				//attach comments and attrs
 				parser.parseComments()
 				parser.attachComments(param)
 				parser.attachAttrs(param)
-
-				method.Params = append(method.Params, param)
-
 				next = parser.Peek()
 
 				if next.Type == ',' {
@@ -343,14 +341,13 @@ func (parser *Parser) parseContract() {
 
 				parser.parseAttrs()
 
-				param := parser.parseType()
+				param := method.NewReturn(parser.parseType())
+				attachPos(param, Pos(param.Type))
 
 				//attach comments and attrs
 				parser.parseComments()
 				parser.attachComments(param)
 				parser.attachAttrs(param)
-
-				method.Return = append(method.Return, param)
 
 				next = parser.Peek()
 
@@ -464,9 +461,13 @@ func (parser *Parser) parseTable(isStruct bool) {
 
 	attachPos(table, name.Pos)
 	parser.attachComments(table)
+
 	parser.attachAttrs(table)
+
 	if isStruct {
-		table.AddAttr(parser.newGsLangAttr("Struct"))
+		attr := parser.newGsLangAttr("Struct")
+		attachPos(attr, name.Pos)
+		table.AddAttr(attr)
 	}
 
 	parser.expect('{')
@@ -926,16 +927,20 @@ func (parser *Parser) parseImports() {
 		parser.script.Imports["gslang"] == nil {
 
 		pkg, err := parser.cs.Compile(GSLangPackage)
+
+		if err != nil {
+			panic(err)
+		}
+
 		pos := Position{
 			FileName: parser.script.Name(),
 			Lines:    1,
 			Column:   1,
 		}
-		if err != nil {
-			panic(err)
-		}
 
 		ref, ok := parser.script.NewPackageRef("gslang", pkg)
+
+		gserrors.Assert(pkg != nil, "check CompileS#Compile implement")
 
 		gserrors.Assert(ok, "must check : if the script manual import gslang package")
 

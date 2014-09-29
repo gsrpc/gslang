@@ -1,6 +1,10 @@
 package ast
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/gsdocker/gserrors"
+)
 
 //TypeRef type reference node
 type TypeRef struct {
@@ -11,6 +15,7 @@ type TypeRef struct {
 
 //NewTypeRef create new type reference node
 func (node *Script) NewTypeRef(namePath []string) *TypeRef {
+	gserrors.Require(len(namePath) > 0, "namePath can't be nil")
 	expr := &TypeRef{NamePath: namePath}
 
 	var buff bytes.Buffer
