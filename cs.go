@@ -166,3 +166,24 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	cs.Loaded[packageName] = pkg
 	return
 }
+
+//Type get current type node
+func (cs *CompileS) Type(pkgName string, typeName string) (ast.Expr, error) {
+	if pkg, ok := cs.Loaded[pkgName]; ok {
+		if target, ok := pkg.Types[typeName]; ok {
+			return target, nil
+		}
+		return nil, gserrors.Newf(
+			ErrCompileS,
+			"can't found type(%s) in package : %s",
+			typeName,
+			pkgName,
+		)
+	}
+
+	return nil, gserrors.Newf(
+		ErrCompileS,
+		"package can't found : %s",
+		pkgName,
+	)
+}

@@ -1,13 +1,16 @@
 //The attribute's target enum
-enum AttrTarget {
+enum AttrTarget(uint16) {
     Package(1),
     Script(2),
     Table(4),
     Struct(8),
-    Contract(16),
-    Method(32),
-    Return(64),
-    Param(128)
+    Enum(16),
+    EnumVal(32),
+    Field(64),
+    Contract(128),
+    Method(256),
+    Return(512),
+    Param(1024)
 }
 
 [AttrUsage(AttrTarget.Table)]
@@ -16,5 +19,5 @@ table AttrUsage {
 }
 
 //indicate AST node table is a struct
-[AttrUsage(AttrTarget.Table)]
+[AttrUsage(AttrTarget.Struct)]
 table Struct {}

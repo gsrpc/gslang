@@ -298,8 +298,8 @@ func (parser *Parser) parseContract() {
 		}
 
 		attachPos(method, methodName.Pos)
-		parser.attachComments(contract)
-		parser.attachAttrs(contract)
+		parser.attachComments(method)
+		parser.attachAttrs(method)
 
 		parser.expect('(')
 
@@ -360,6 +360,8 @@ func (parser *Parser) parseContract() {
 			}
 			parser.expect(')')
 		}
+
+		parser.expect(';')
 	}
 
 	parser.expect('}')

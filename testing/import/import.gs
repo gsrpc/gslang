@@ -3,7 +3,7 @@ import (
     "github.com/gsdocker/gslang/testing" //import testing
 )
 
-[gslang.AttrUsage(gslang.AttrTarget.Table)]
+[gslang.AttrUsage(gslang.AttrTarget.Script)]
 table test {status bool;}
 
 //hello

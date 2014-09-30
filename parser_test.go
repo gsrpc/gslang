@@ -7,6 +7,7 @@ import (
 )
 
 func TestParseImports(t *testing.T) {
+
 	defer gslogger.Join()
 
 	cs := NewCompileS()

@@ -69,6 +69,18 @@ func Path(node Node) (result []Node) {
 	return
 }
 
+//GetAttrs get special type attrs
+func GetAttrs(node Node, attrType Expr) []*Attr {
+	var attrs []*Attr
+	for _, attr := range node.Attrs() {
+		if attr.Type.Ref == attrType {
+			attrs = append(attrs, attr)
+		}
+	}
+
+	return attrs
+}
+
 //Expr AST expr node
 type Expr interface {
 	//Node Inher Node interface

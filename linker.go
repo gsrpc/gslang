@@ -11,6 +11,12 @@ func (cs *CompileS) link(pkg *ast.Package) {
 	}
 
 	pkg.Accept(linker)
+
+	linker2 := &attrLinker{
+		CompileS: cs,
+	}
+
+	pkg.Accept(linker2)
 }
 
 //Linker the type reference linker
@@ -41,10 +47,6 @@ func (linker *Linker) VisitScript(script *ast.Script) ast.Node {
 
 	for _, expr := range script.Types {
 		expr.Accept(linker)
-	}
-
-	for _, attr := range script.Attrs() {
-		linker.EvalAttrUsage(attr)
 	}
 
 	return script
@@ -242,4 +244,281 @@ func (linker *Linker) VisitTypeRef(ref *ast.TypeRef) ast.Node {
 	}
 	linker.errorf(Pos(ref), "unknown type(%s)", ref)
 	return ref
+}
+
+type attrLinker struct {
+	*CompileS                         // compile services which this linker belongs to
+	ast.EmptyVisitor                  //Mixin empty visitor implements
+	attrTarget       map[string]int64 //attribute target enum map
+	attrStruct       ast.Expr         //the struct attribute expr node
+}
+
+// VisitPackage implement visitor interface
+func (linker *attrLinker) VisitPackage(pkg *ast.Package) ast.Node {
+
+	if pkg.Name() == GSLangPackage {
+		if expr, ok := pkg.Types[GSLangAttrTarget]; ok {
+			if enum, ok := expr.(*ast.Enum); ok {
+				linker.attrTarget = Enum(enum)
+			}
+		}
+	} else {
+		if pkg, ok := linker.Loaded[GSLangPackage]; ok {
+			if expr, ok := pkg.Types[GSLangAttrTarget]; ok {
+				if enum, ok := expr.(*ast.Enum); ok {
+					linker.attrTarget = Enum(enum)
+				}
+			}
+		}
+	}
+
+	if linker.attrTarget == nil {
+		gserrors.Panicf(ErrCompileS, "inner error: can't found gslang.AttrTarget enum")
+	}
+
+	if pkg.Name() == GSLangPackage {
+
+		linker.attrStruct = pkg.Types[GSLangAttrStruct]
+
+		if linker.attrStruct == nil {
+			gserrors.Panicf(ErrCompileS, "inner error: can't found gslang.Struct attribute type")
+		}
+
+	} else {
+		attrStruct, err := linker.Type(GSLangPackage, GSLangAttrStruct)
+
+		if err != nil {
+			gserrors.Panicf(err, "inner error: can't found gslang.Struct attribute type")
+		}
+
+		linker.attrStruct = attrStruct
+	}
+
+	for _, script := range pkg.Scripts {
+		script.Accept(linker)
+	}
+
+	return pkg
+}
+
+// VisitScript implement visitor interface
+func (linker *attrLinker) VisitScript(script *ast.Script) ast.Node {
+	for _, attr := range script.Attrs() {
+		target := linker.EvalAttrUsage(attr)
+
+		if target&linker.attrTarget["Script"] == 0 {
+
+			if target&linker.attrTarget["Package"] != 0 {
+				script.RemoveAttr(attr)
+				script.Package().AddAttr(attr)
+
+			} else {
+				linker.errorf(
+					Pos(attr),
+					"attr(%s) can't be used to attribute script :\n\tsee:%s",
+					attr,
+					Pos(attr.Type.Ref),
+				)
+			}
+		}
+	}
+
+	for _, expr := range script.Types {
+		expr.Accept(linker)
+	}
+
+	return script
+}
+
+//VisitTable implement visitor interface
+func (linker *attrLinker) VisitTable(table *ast.Table) ast.Node {
+
+	var isStruct bool
+	//detect if this table is an struct
+	if len(ast.GetAttrs(table, linker.attrStruct)) > 0 {
+		isStruct = true
+	}
+
+	for _, attr := range table.Attrs() {
+		target := linker.EvalAttrUsage(attr)
+
+		var toMove bool
+
+		if isStruct {
+
+			if target&linker.attrTarget["Struct"] == 0 {
+				toMove = true
+			}
+		} else {
+			if target&linker.attrTarget["Table"] == 0 {
+				toMove = true
+			}
+		}
+
+		if toMove {
+			if target&linker.attrTarget["Script"] != 0 {
+				table.RemoveAttr(attr)
+				table.Script().AddAttr(attr)
+				continue
+			}
+
+			if target&linker.attrTarget["Package"] != 0 {
+				table.RemoveAttr(attr)
+				table.Package().AddAttr(attr)
+				continue
+			}
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) can't be used to attribute table/struct :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+
+	}
+
+	for _, field := range table.Fields {
+		field.Accept(linker)
+	}
+
+	return table
+}
+
+//VisitField implement visitor interface
+func (linker *attrLinker) VisitField(field *ast.Field) ast.Node {
+	for _, attr := range field.Attrs() {
+
+		target := linker.EvalAttrUsage(attr)
+
+		if target&linker.attrTarget["Field"] == 0 {
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) can't be used to attribute field :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+	}
+
+	return field
+}
+
+//VisitEnum implement visitor interface
+func (linker *attrLinker) VisitEnum(enum *ast.Enum) ast.Node {
+	for _, attr := range enum.Attrs() {
+		target := linker.EvalAttrUsage(attr)
+
+		if target&linker.attrTarget["Enum"] == 0 {
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) can't be used to attribute enum :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+	}
+
+	for _, val := range enum.Values {
+		val.Accept(linker)
+	}
+
+	return enum
+}
+
+//VisitEnumVal implement visitor interface
+func (linker *attrLinker) VisitEnumVal(val *ast.EnumVal) ast.Node {
+	for _, attr := range val.Attrs() {
+		target := linker.EvalAttrUsage(attr)
+
+		if target&linker.attrTarget["EnumVal"] == 0 {
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) can't be used to attribute enum value :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+	}
+
+	return val
+}
+
+//VisitContract implement visitor interface
+func (linker *attrLinker) VisitContract(contract *ast.Contract) ast.Node {
+	for _, attr := range contract.Attrs() {
+		target := linker.EvalAttrUsage(attr)
+		if target&linker.attrTarget["Script"] != 0 {
+			contract.RemoveAttr(attr)
+			contract.Script().AddAttr(attr)
+			continue
+		}
+
+		if target&linker.attrTarget["Package"] != 0 {
+			contract.RemoveAttr(attr)
+			contract.Package().AddAttr(attr)
+			continue
+		}
+		linker.errorf(
+			Pos(attr),
+			"attr(%s) can't be used to attribute contract :\n\tsee:%s",
+			attr,
+			Pos(attr.Type.Ref),
+		)
+	}
+
+	for _, method := range contract.Methods {
+		method.Accept(linker)
+	}
+
+	return contract
+}
+
+//VisitMethod implement visitor interface
+func (linker *attrLinker) VisitMethod(method *ast.Method) ast.Node {
+
+	for _, attr := range method.Attrs() {
+
+		target := linker.EvalAttrUsage(attr)
+
+		if target&linker.attrTarget["EnumVal"] == 0 {
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) can't be used to attribute method :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+	}
+
+	for _, expr := range method.Return {
+		for _, attr := range expr.Attrs() {
+			target := linker.EvalAttrUsage(attr)
+
+			if target&linker.attrTarget["Return"] == 0 {
+				linker.errorf(
+					Pos(attr),
+					"attr(%s) can't be used to attribute method return param :\n\tsee:%s",
+					attr,
+					Pos(attr.Type.Ref),
+				)
+			}
+		}
+	}
+
+	for _, expr := range method.Params {
+		for _, attr := range expr.Attrs() {
+			target := linker.EvalAttrUsage(attr)
+
+			if target&linker.attrTarget["Param"] == 0 {
+				linker.errorf(
+					Pos(attr),
+					"attr(%s) can't be used to attribute method param :\n\tsee:%s",
+					attr,
+					Pos(attr.Type.Ref),
+				)
+			}
+		}
+	}
+
+	return method
 }

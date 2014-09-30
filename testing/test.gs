@@ -1,4 +1,5 @@
 
+[gslang.AttrUsage(gslang.AttrTarget.Package)]
 table Any {
     hello [1]int32;
 }
@@ -8,5 +9,5 @@ table Any {
 //Who interface
 contract Who {
     //WhoAreYou get user name
-    WhoAreYou() -> (string /*user name*/,int32)
+    WhoAreYou() -> (string /*user name*/,int32) ;
 }
