@@ -1,10 +1,17 @@
 GSLang
 ======
 
-GSLang define a DSL for rpc, you can use this pacakge to parse DSL and generate
-AST in memory; and more you can develop yourself's codegen backend base on this
-pacakge
+GSLang define first class a rpc DSL for golang, you can use this pacakge to
+parse DSL and generate AST in memory; and more you can develop yourself's
+codegen backend base on this pacakge
 
+
+##Fetures
++ Compatible golang package system
++ support struct/table/enum
++ support contract,the RPC interface
++ support tag attribute on package/script/struct/table/enum/contract,
+  field,enum value,param,return param
 
 ##Script sample
 
