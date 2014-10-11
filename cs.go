@@ -18,8 +18,18 @@ var (
 	ErrCompileS = errors.New("CompileS error")
 )
 
-func setFilePath(node ast.Node, fullPath string) {
-	node.NewExtra("FilePath", fullPath)
+func setFilePath(script *ast.Script, fullPath string) {
+	script.NewExtra("FilePath", fullPath)
+}
+
+//FilePath get the script's file path
+func FilePath(script *ast.Script) (string, bool) {
+	path, ok := script.Extra("FilePath")
+	if ok {
+		return path.(string), ok
+	}
+
+	return "", ok
 }
 
 //CompileS gslang compile service
@@ -94,7 +104,26 @@ func (cs *CompileS) errorf(position Position, fmtstring string, args ...interfac
 	)
 }
 
-//Compile 编译指定的包
+//Accept implement visit pattern
+func (cs *CompileS) Accept(visitor ast.Visitor) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			if _, ok := e.(gserrors.GSError); ok {
+				err = e.(error)
+			} else {
+				err = gserrors.New(e.(error))
+			}
+		}
+	}()
+
+	for _, pkg := range cs.Loaded {
+		pkg.Accept(visitor)
+	}
+
+	return
+}
+
+//Compile compile target package
 func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	defer func() {
 		if e := recover(); e != nil {

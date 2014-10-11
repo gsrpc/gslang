@@ -337,6 +337,7 @@ func (linker *attrLinker) VisitTable(table *ast.Table) ast.Node {
 	//detect if this table is an struct
 	if len(ast.GetAttrs(table, linker.attrStruct)) > 0 {
 		isStruct = true
+		markAsStruct(table)
 	}
 
 	for _, attr := range table.Attrs() {

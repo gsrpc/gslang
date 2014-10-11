@@ -12,6 +12,7 @@ type EnumVal struct {
 type Enum struct {
 	BasicExpr                     //mixin default expr implement
 	Values    map[string]*EnumVal //enum values table
+	Default   *EnumVal            // start enum const
 	Length    uint                //enum type length
 	Signed    bool                //the enum numer signed flag
 }
@@ -65,5 +66,10 @@ func (expr *Enum) NewVal(name string, val int64) (result *EnumVal, ok bool) {
 
 	expr.Values[name] = result
 	ok = true
+
+	if expr.Default == nil {
+		expr.Default = result
+	}
+
 	return
 }

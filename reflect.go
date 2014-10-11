@@ -48,6 +48,17 @@ func IsAttrUsage(expr *ast.Table) bool {
 	return false
 }
 
+//IsStruct check if the table is struct
+func IsStruct(expr *ast.Table) bool {
+	_, ok := expr.Extra("isStruct")
+
+	return ok
+}
+
+func markAsStruct(expr *ast.Table) {
+	expr.NewExtra("isStruct", true)
+}
+
 //EvalAttrUsage get attribute's usage attr val
 func (cs *CompileS) EvalAttrUsage(attr *ast.Attr) int64 {
 
