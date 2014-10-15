@@ -256,6 +256,10 @@ type attrLinker struct {
 // VisitPackage implement visitor interface
 func (linker *attrLinker) VisitPackage(pkg *ast.Package) ast.Node {
 
+	if len(pkg.Scripts) == 0 {
+		return pkg
+	}
+
 	if pkg.Name() == GSLangPackage {
 		if expr, ok := pkg.Types[GSLangAttrTarget]; ok {
 			if enum, ok := expr.(*ast.Enum); ok {
