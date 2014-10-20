@@ -16,8 +16,19 @@ type Param struct {
 //Method AST method node
 type Method struct {
 	BasicExpr          //Mixin basic expr implement
+	ID        uint16   //Method id
 	Return    []*Param //Return param
 	Params    []*Param //Input parameters
+}
+
+//InputParams input param list length
+func (method *Method) InputParams() uint16 {
+	return uint16(len(method.Params))
+}
+
+//ReturnParams return param list length
+func (method *Method) ReturnParams() uint16 {
+	return uint16(len(method.Return))
 }
 
 //NewReturn create new return param
@@ -101,6 +112,8 @@ func (expr *Contract) NewMethod(name string) (method *Method, ok bool) {
 	}, "make sure alloc Contract's Methods field")
 
 	method = &Method{}
+
+	method.ID = uint16(len(expr.Methods))
 
 	method.Init(name, expr.Script())
 
