@@ -1,6 +1,9 @@
 package gslang
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang/ast"
 )
@@ -17,6 +20,12 @@ func (cs *CompileS) link(pkg *ast.Package) {
 	}
 
 	pkg.Accept(linker2)
+
+	linker3 := &contractLinker{
+		CompileS: cs,
+	}
+
+	pkg.Accept(linker3)
 }
 
 //Linker the type reference linker
@@ -102,6 +111,10 @@ func (linker *Linker) VisitEnumVal(val *ast.EnumVal) ast.Node {
 func (linker *Linker) VisitContract(contract *ast.Contract) ast.Node {
 	for _, attr := range contract.Attrs() {
 		attr.Accept(linker)
+	}
+
+	for _, base := range contract.Bases {
+		base.Accept(linker)
 	}
 
 	for _, method := range contract.Methods {
@@ -244,6 +257,120 @@ func (linker *Linker) VisitTypeRef(ref *ast.TypeRef) ast.Node {
 	}
 	linker.errorf(Pos(ref), "unknown type(%s)", ref)
 	return ref
+}
+
+type contractLinker struct {
+	*CompileS        // compile services which this linker belongs to
+	ast.EmptyVisitor //Mixin empty visitor implements
+}
+
+// VisitPackage implement visitor interface
+func (linker *contractLinker) VisitPackage(pkg *ast.Package) ast.Node {
+
+	for _, script := range pkg.Scripts {
+		script.Accept(linker)
+	}
+
+	return pkg
+}
+
+// VisitScript implement visitor interface
+func (linker *contractLinker) VisitScript(script *ast.Script) ast.Node {
+	for _, expr := range script.Types {
+		expr.Accept(linker)
+	}
+
+	return script
+}
+
+//VisitContract implement visitor interface
+func (linker *contractLinker) VisitContract(contract *ast.Contract) ast.Node {
+
+	linker.unwind(contract, nil)
+
+	return contract
+}
+
+func (linker *contractLinker) unwind(expr *ast.Contract, stack []*ast.Contract) []*ast.Contract {
+
+	if _, ok := expr.Extra("unwind"); ok {
+		return stack
+	}
+
+	var stream bytes.Buffer
+
+	for _, contract := range stack {
+		if contract == expr || stream.Len() != 0 {
+			stream.WriteString(fmt.Sprintf("\t%s inheri\n", contract))
+		}
+	}
+
+	if stream.Len() != 0 {
+		linker.errorf(
+			Pos(expr),
+			"circular inheri :\n%s\t%s",
+			stream.String(),
+			expr,
+		)
+	}
+
+	stack = append(stack, expr)
+
+	modify := uint16(0)
+
+	for _, base := range expr.Bases {
+		contract, ok := base.Ref.(*ast.Contract)
+		if !ok {
+			linker.errorf(
+				Pos(base),
+				"contract(%s) inheri type is not contract :\n\tsee:%s",
+				expr,
+				Pos(base.Ref),
+			)
+		}
+
+		stack = linker.unwind(contract, stack)
+
+		modify = modify + uint16(len(contract.Methods))
+	}
+
+	for _, method := range expr.Methods {
+		method.ID = method.ID + modify
+	}
+
+	modify = uint16(0)
+
+	for _, base := range expr.Bases {
+		contract := base.Ref.(*ast.Contract)
+
+		for _, method := range contract.Methods {
+			clone := &ast.Method{}
+			*clone = *method
+			clone.ID = clone.ID + modify
+
+			if old, ok := expr.Methods[clone.Name()]; ok {
+				linker.errorf(
+					Pos(expr),
+					"duplicate method name :%s\n\tsee:%s\n\tsee:%s",
+					clone,
+					Pos(old),
+					Pos(clone),
+				)
+			}
+
+			method.SetParent(expr)
+
+			expr.Methods[clone.Name()] = clone
+		}
+
+		modify = modify + uint16(len(contract.Methods))
+	}
+
+	expr.NewExtra("unwind", true)
+
+	stack = stack[:len(stack)-1]
+
+	return stack
 }
 
 type attrLinker struct {

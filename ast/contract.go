@@ -101,15 +101,11 @@ func (expr *Contract) NewBase(base *TypeRef) (ref *TypeRef, ok bool) {
 
 //NewMethod create new method node belong to current contract
 func (expr *Contract) NewMethod(name string) (method *Method, ok bool) {
-	gserrors.Require(expr.Methods != nil, "NewContract method must alloc Methods field")
 
-	defer gserrors.Ensure(func() bool {
-		return ok == (method == expr.Methods[name])
-	}, "post condition check")
-
-	defer gserrors.Ensure(func() bool {
-		return expr.Methods != nil
-	}, "make sure alloc Contract's Methods field")
+	if method, ok = expr.Methods[name]; ok {
+		ok = false
+		return
+	}
 
 	method = &Method{}
 
