@@ -253,6 +253,7 @@ func (parser *Parser) parseContract() {
 		for {
 			parser.parseComments()
 			base := parser.parseTypeRef()
+
 			if old, ok := contract.NewBase(base); ok {
 				parser.parseComments()
 				parser.attachComments(base)
@@ -311,7 +312,15 @@ func (parser *Parser) parseContract() {
 
 				parser.parseAttrs()
 
-				param := method.NewParam(parser.parseType())
+				parmaType := parser.parseType()
+
+				next := parser.Peek()
+
+				if next.Type != ',' && next.Type != ')' {
+					parmaType = parser.parseType()
+				}
+
+				param := method.NewParam(parmaType)
 				attachPos(param, Pos(param.Type))
 
 				//attach comments and attrs
@@ -340,8 +349,15 @@ func (parser *Parser) parseContract() {
 			for {
 
 				parser.parseAttrs()
+				parmaType := parser.parseType()
 
-				param := method.NewReturn(parser.parseType())
+				next := parser.Peek()
+
+				if next.Type != ',' && next.Type != ')' {
+					parmaType = parser.parseType()
+				}
+
+				param := method.NewReturn(parmaType)
 				attachPos(param, Pos(param.Type))
 
 				//attach comments and attrs
