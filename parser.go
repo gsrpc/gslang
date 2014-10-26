@@ -316,7 +316,7 @@ func (parser *Parser) parseContract() {
 
 				next := parser.Peek()
 
-				if next.Type != ',' && next.Type != ')' {
+				if next.Type != ',' && next.Type != ')' && next.Type != TokenCOMMENT {
 					parmaType = parser.parseType()
 				}
 
@@ -353,7 +353,7 @@ func (parser *Parser) parseContract() {
 
 				next := parser.Peek()
 
-				if next.Type != ',' && next.Type != ')' {
+				if next.Type != ',' && next.Type != ')' && next.Type != TokenCOMMENT {
 					parmaType = parser.parseType()
 				}
 
