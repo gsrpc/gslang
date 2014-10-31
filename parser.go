@@ -316,7 +316,9 @@ func (parser *Parser) parseContract() {
 
 				next := parser.Peek()
 
-				if next.Type != ',' && next.Type != ')' && next.Type != TokenCOMMENT {
+				if next.Type != ',' &&
+					next.Type != ')' &&
+					next.Type != TokenCOMMENT {
 					parmaType = parser.parseType()
 				}
 
@@ -353,7 +355,9 @@ func (parser *Parser) parseContract() {
 
 				next := parser.Peek()
 
-				if next.Type != ',' && next.Type != ')' && next.Type != TokenCOMMENT {
+				if next.Type != ',' &&
+					next.Type != ')' &&
+					next.Type != TokenCOMMENT {
 					parmaType = parser.parseType()
 				}
 
@@ -667,11 +671,12 @@ func (parser *Parser) parseAttrs() {
 	for {
 
 		token := parser.Peek()
-		if token.Type != '[' {
+		if token.Type != '@' {
 			return
 		}
 		//move cousor to next token
 		parser.Next()
+
 		//create new attr node obj
 		attr := parser.script.NewAttr(
 			parser.parseTypeRef(),
@@ -687,7 +692,7 @@ func (parser *Parser) parseAttrs() {
 			parser.expect(')') //expect argument list end token
 		}
 
-		parser.expect(']') //parse attribute end token
+		//parser.expect(']') //parse attribute end token
 
 		parser.attrs = append(parser.attrs, attr) //add attr to canched Q
 

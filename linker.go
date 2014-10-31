@@ -590,6 +590,11 @@ func (linker *attrLinker) VisitContract(contract *ast.Contract) ast.Node {
 			contract.Package().AddAttr(attr)
 			continue
 		}
+
+		if target&linker.attrTarget["Contract"] != 0 {
+			continue
+		}
+
 		linker.errorf(
 			Pos(attr),
 			"attr(%s) can't be used to attribute contract :\n\tsee:%s",

@@ -81,9 +81,9 @@ func (cs *CompileS) EvalAttrUsage(attr *ast.Attr) int64 {
 		gserrors.Require(ok, "attr(%s) must linked first :\n\t%s", metattr, Pos(attr))
 
 		if IsAttrUsage(usage) {
-			field := usage.Fields["Target"]
+			field, ok := usage.Field("Target")
 
-			if field == nil {
+			if !ok {
 				gserrors.Panicf(
 					ErrCompileS,
 					"inner error: gslang AttrUsage must declare Target Field \n\ttype def:",
