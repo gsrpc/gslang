@@ -378,6 +378,7 @@ type attrLinker struct {
 	ast.EmptyVisitor                  //Mixin empty visitor implements
 	attrTarget       map[string]int64 //attribute target enum map
 	attrStruct       ast.Expr         //the struct attribute expr node
+	attrError        ast.Expr         //the error attribute expr node
 }
 
 // VisitPackage implement visitor interface
@@ -415,6 +416,12 @@ func (linker *attrLinker) VisitPackage(pkg *ast.Package) ast.Node {
 			gserrors.Panicf(ErrCompileS, "inner error: can't found gslang.Struct attribute type")
 		}
 
+		linker.attrError = pkg.Types[GSLangAttrError]
+
+		if linker.attrError == nil {
+			gserrors.Panicf(ErrCompileS, "inner error: can't found gslang.Error attribute type")
+		}
+
 	} else {
 		attrStruct, err := linker.Type(GSLangPackage, GSLangAttrStruct)
 
@@ -423,6 +430,14 @@ func (linker *attrLinker) VisitPackage(pkg *ast.Package) ast.Node {
 		}
 
 		linker.attrStruct = attrStruct
+
+		attrError, err := linker.Type(GSLangPackage, GSLangAttrError)
+
+		if err != nil {
+			gserrors.Panicf(err, "inner error: can't found gslang.Error attribute type")
+		}
+
+		linker.attrError = attrError
 	}
 
 	for _, script := range pkg.Scripts {
@@ -537,6 +552,12 @@ func (linker *attrLinker) VisitField(field *ast.Field) ast.Node {
 
 //VisitEnum implement visitor interface
 func (linker *attrLinker) VisitEnum(enum *ast.Enum) ast.Node {
+
+	//detect if this table is an struct
+	if len(ast.GetAttrs(enum, linker.attrError)) > 0 {
+		markAsError(enum)
+	}
+
 	for _, attr := range enum.Attrs() {
 		target := linker.EvalAttrUsage(attr)
 
@@ -548,6 +569,7 @@ func (linker *attrLinker) VisitEnum(enum *ast.Enum) ast.Node {
 				Pos(attr.Type.Ref),
 			)
 		}
+
 	}
 
 	for _, val := range enum.Values {

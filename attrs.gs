@@ -21,3 +21,8 @@ table AttrUsage {
 //indicate AST node table is a struct
 @AttrUsage(AttrTarget.Struct)
 table Struct {}
+
+
+// the enum is error code
+@AttrUsage(AttrTarget.Enum)
+table Error {}

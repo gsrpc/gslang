@@ -511,12 +511,11 @@ func (parser *Parser) parseTable(isStruct bool) {
 		}
 
 		attachPos(field, fieldName.Pos)
+		field.Type = parser.parseType()
+		parser.expect(';')
+		parser.parseComments()
 		parser.attachComments(field)
 		parser.attachAttrs(field)
-
-		field.Type = parser.parseType()
-
-		parser.expect(';')
 	}
 
 	parser.expect('}')
@@ -650,16 +649,19 @@ func (parser *Parser) parseEnum() {
 			)
 		}
 
-		attachPos(enumVal, token.Pos)  //bind position extra data
-		parser.attachComments(enumVal) //bind comment extra data
-		parser.attachAttrs(enumVal)    //bind attrs
+		attachPos(enumVal, token.Pos) //bind position extra data
+		parser.attachAttrs(enumVal)   //bind attrs
 
 		// if not found ','  break field parse loop
 		next = parser.Peek()
 		if next.Type != ',' {
+			parser.parseComments()
+			parser.attachComments(enumVal)
 			break
 		}
 		parser.Next()
+		parser.parseComments()
+		parser.attachComments(enumVal)
 	}
 
 	parser.expect('}')

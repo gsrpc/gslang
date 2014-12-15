@@ -5,4 +5,5 @@ const (
 	GSLangPackage    = "github.com/gsdocker/gslang"
 	GSLangAttrTarget = "AttrTarget"
 	GSLangAttrStruct = "Struct"
+	GSLangAttrError  = "Error"
 )

@@ -45,7 +45,7 @@ func NewCompileS() *CompileS {
 	GOPATH := os.Getenv("GOPATH")
 
 	if GOPATH == "" {
-		gserrors.Newf(ErrCompileS, "must set GOPATH first")
+		gserrors.Panicf(ErrCompileS, "must set GOPATH first")
 	}
 	return &CompileS{
 		Log:    gslogger.Get("gslang"),
@@ -73,7 +73,7 @@ func (cs *CompileS) searchPackage(packageName string) string {
 		for i, path := range found {
 			stream.WriteString(fmt.Sprintf("\n\t%d) %s", i, path))
 		}
-		gserrors.Newf(ErrCompileS, stream.String())
+		gserrors.Panicf(ErrCompileS, stream.String())
 	}
 
 	return found[0]

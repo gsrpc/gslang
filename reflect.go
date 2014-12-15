@@ -59,6 +59,17 @@ func markAsStruct(expr *ast.Table) {
 	expr.NewExtra("isStruct", true)
 }
 
+//IsError check if the enum is error codes
+func IsError(expr *ast.Enum) bool {
+	_, ok := expr.Extra("isError")
+
+	return ok
+}
+
+func markAsError(expr *ast.Enum) {
+	expr.NewExtra("isError", true)
+}
+
 //EvalAttrUsage get attribute's usage attr val
 func (cs *CompileS) EvalAttrUsage(attr *ast.Attr) int64 {
 
