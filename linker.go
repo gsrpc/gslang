@@ -639,7 +639,7 @@ func (linker *attrLinker) VisitMethod(method *ast.Method) ast.Node {
 
 		target := linker.EvalAttrUsage(attr)
 
-		if target&linker.attrTarget["EnumVal"] == 0 {
+		if target&linker.attrTarget["Method"] == 0 {
 			linker.errorf(
 				Pos(attr),
 				"attr(%s) can't be used to attribute method :\n\tsee:%s",
