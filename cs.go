@@ -144,9 +144,15 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 
 	}, "if err == nil ,the return pkg param can't be nil")
 
+	if packageName[len(packageName)-1] == '/' {
+		packageName = packageName[:len(packageName)-1]
+	}
+
+	cs.D("compile package :%s", packageName)
+
 	//跳过已经加载的包
 	if loaded, ok := cs.Loaded[packageName]; ok {
-		//cs.D("skip compiled package :%s ", packageName)
+		cs.D("compile package :%s -- skipped", packageName)
 		pkg = loaded
 		return
 	}
@@ -154,6 +160,8 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	cs.circularRefCheck(packageName)
 
 	fullPath := cs.searchPackage(packageName)
+
+	cs.D("compile package fullpath : %s", fullPath)
 
 	pkg = ast.NewPackage(packageName)
 
@@ -193,6 +201,9 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 
 	cs.loading = cs.loading[:len(cs.loading)-1]
 	cs.Loaded[packageName] = pkg
+
+	cs.D("compile package :%s -- success", packageName)
+
 	return
 }
 
