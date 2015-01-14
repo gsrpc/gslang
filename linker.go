@@ -555,7 +555,36 @@ func (linker *attrLinker) VisitEnum(enum *ast.Enum) ast.Node {
 
 	//detect if this table is an struct
 	if len(ast.GetAttrs(enum, linker.attrError)) > 0 {
-		markAsError(enum)
+
+		attrs := ast.GetAttrs(enum, linker.attrError)
+
+		for _, attr := range attrs {
+			field, ok := attr.Type.Ref.(*ast.Table).Field("UUID")
+
+			gserrors.Assert(ok, "must contain UUID field")
+
+			if attr.Args == nil {
+				linker.errorf(
+					Pos(attr),
+					"attr(%s) expect UUID init arg :\n\tsee:%s",
+					attr,
+					Pos(attr.Type.Ref),
+				)
+			}
+
+			if target, ok := EvalFieldInitArg(field, attr.Args); ok {
+				markAsError(enum, target.(*ast.String).Value)
+				break
+			}
+
+			linker.errorf(
+				Pos(attr),
+				"attr(%s) expect UUID init arg :\n\tsee:%s",
+				attr,
+				Pos(attr.Type.Ref),
+			)
+		}
+
 	}
 
 	for _, attr := range enum.Attrs() {

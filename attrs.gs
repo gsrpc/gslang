@@ -25,4 +25,6 @@ table Struct {}
 
 // the enum is error code
 @AttrUsage(AttrTarget.Enum)
-table Error {}
+table Error {
+    UUID string;
+}

@@ -66,8 +66,19 @@ func IsError(expr *ast.Enum) bool {
 	return ok
 }
 
-func markAsError(expr *ast.Enum) {
-	expr.NewExtra("isError", true)
+//ErrorUUID check if the enum is error codes
+func ErrorUUID(expr *ast.Enum) (string, bool) {
+	val, ok := expr.Extra("isError")
+
+	if ok {
+		return val.(string), ok
+	}
+
+	return "", ok
+}
+
+func markAsError(expr *ast.Enum, uuidstring string) {
+	expr.NewExtra("isError", uuidstring)
 }
 
 //EvalAttrUsage get attribute's usage attr val
