@@ -194,16 +194,16 @@ func (cs *CompileS) parse(pkg *ast.Package, path string) (*ast.Script, error) {
 }
 
 func (parser *Parser) parse() (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			if _, ok := e.(gserrors.GSError); ok {
-				err = e.(error)
-			} else {
-				err = gserrors.New(e.(error))
-			}
-
-		}
-	}()
+	// defer func() {
+	// 	if e := recover(); e != nil {
+	// 		if _, ok := e.(gserrors.GSError); ok {
+	// 			err = e.(error)
+	// 		} else {
+	// 			err = gserrors.New(e.(error))
+	// 		}
+	//
+	// 	}
+	// }()
 	parser.parseImports()
 
 	for {
@@ -954,7 +954,7 @@ func (parser *Parser) parseImports() {
 		pkg, err := parser.cs.Compile(GSLangPackage)
 
 		if err != nil {
-			panic(err)
+			gserrors.Newf(err, "compile package error")
 		}
 
 		pos := Position{

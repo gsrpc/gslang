@@ -58,11 +58,21 @@ func (cs *CompileS) searchPackage(packageName string) string {
 	var found []string
 	for _, path := range cs.goPath {
 		fullpath := filepath.Join(path, "src", packageName)
-		fi, err := os.Stat(fullpath)
 
-		if err == nil && fi.IsDir() {
-			found = append(found, fullpath)
+		fi, err := os.Lstat(fullpath)
+
+		if err == nil {
+
+			if fi.Mode()&os.ModeSymlink != 0 {
+				fullpath, _ = os.Readlink(fullpath)
+				fi, _ = os.Lstat(fullpath)
+			}
+
+			if fi.IsDir() {
+				found = append(found, fullpath)
+			}
 		}
+
 	}
 
 	if len(found) > 1 {
