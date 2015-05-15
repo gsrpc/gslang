@@ -58,7 +58,7 @@ func (cs *CompileS) searchPackage(packageName string) string {
 	var found []string
 	for _, path := range cs.goPath {
 		fullpath := filepath.Join(path, "src", packageName)
-		fi, err := os.Stat(path)
+		fi, err := os.Stat(fullpath)
 
 		if err == nil && fi.IsDir() {
 			found = append(found, fullpath)
@@ -74,6 +74,10 @@ func (cs *CompileS) searchPackage(packageName string) string {
 			stream.WriteString(fmt.Sprintf("\n\t%d) %s", i, path))
 		}
 		gserrors.Panicf(ErrCompileS, stream.String())
+	}
+
+	if len(found) == 0 {
+		gserrors.Panicf(ErrCompileS, "not found package :%s", packageName)
 	}
 
 	return found[0]
@@ -134,15 +138,6 @@ func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 			}
 		}
 	}()
-
-	defer gserrors.Ensure(func() bool {
-		if err == nil {
-			return pkg != nil
-		}
-
-		return true
-
-	}, "if err == nil ,the return pkg param can't be nil")
 
 	if packageName[len(packageName)-1] == '/' {
 		packageName = packageName[:len(packageName)-1]
