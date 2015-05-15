@@ -222,7 +222,7 @@ func (parser *Parser) parse() (err error) {
 		case KeyContract:
 			parser.parseContract()
 		default:
-			parser.errorf(token.Pos, "expect EOF")
+			parser.errorf(token.Pos, "expect EOF,but got :%s", token.String())
 		}
 	}
 FINISH:

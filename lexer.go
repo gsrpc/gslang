@@ -125,7 +125,7 @@ func NewToken(t rune, val interface{}) *Token {
 func (token *Token) String() string {
 	if token.Value != nil {
 		return fmt.Sprintf(
-			"token[%s]\n\tval :%v\n\tpos :%s",
+			"token %s\n\tval :%v\n\tpos :%s",
 			TokenName(token.Type),
 			token.Value,
 			token.Pos,
@@ -133,7 +133,7 @@ func (token *Token) String() string {
 	}
 
 	return fmt.Sprintf(
-		"token[%s]\n\tpos :%s",
+		"token %s\n\tpos :%s",
 		TokenName(token.Type),
 		token.Pos,
 	)
