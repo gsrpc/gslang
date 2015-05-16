@@ -59,8 +59,6 @@ func (cs *CompileS) searchPackage(packageName string) string {
 	for _, path := range cs.goPath {
 		fullpath := filepath.Join(path, "src", packageName)
 
-		cs.I("search package :%s", fullpath)
-
 		fi, err := os.Lstat(fullpath)
 
 		if err == nil {
