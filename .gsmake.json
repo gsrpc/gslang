@@ -2,9 +2,9 @@
     "name":"github.com/gsdocker/gslang",
 
     "import" : [
-        {"name" : "github.com/gsdocker/gsos","scope":"runtimes"},
-        {"name" : "github.com/gsdocker/gserrors","scope":"runtimes"},
-        {"name" : "github.com/gsdocker/gsconfig","scope":"runtimes"},
-        {"name" : "github.com/gsdocker/gslogger","scope":"runtimes"}
+        {"name" : "github.com/gsdocker/gsos","version":"v2.0"},
+        {"name" : "github.com/gsdocker/gserrors","version":"v2.0"},
+        {"name" : "github.com/gsdocker/gsconfig","version":"v2.0"},
+        {"name" : "github.com/gsdocker/gslogger","version":"v2.0"}
     ]
 }
