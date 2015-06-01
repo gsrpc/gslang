@@ -55,6 +55,7 @@ func NewCompileS() *CompileS {
 }
 
 func (cs *CompileS) searchPackage(packageName string) string {
+
 	var found []string
 	for _, path := range cs.goPath {
 		fullpath := filepath.Join(path, "src", packageName)
@@ -141,15 +142,13 @@ func (cs *CompileS) Accept(visitor ast.Visitor) (err error) {
 func (cs *CompileS) Compile(packageName string) (pkg *ast.Package, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			// if _, ok := e.(gserrors.GSError); ok {
-			// 	err = e.(error)
-			// } else {
-			// 	err = gserrors.New(e.(error))
-			// }
+			if _, ok := e.(gserrors.GSError); ok {
+				err = e.(error)
+			} else {
+				err = gserrors.New(e.(error))
+			}
 
-			cs.I("compile package %s panic", packageName)
-
-			err = e.(error)
+			cs.E("compile package %s panic", packageName)
 		}
 	}()
 

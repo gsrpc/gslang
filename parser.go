@@ -954,7 +954,7 @@ func (parser *Parser) parseImports() {
 		pkg, err := parser.cs.Compile(GSLangPackage)
 
 		if err != nil {
-			gserrors.Newf(err, "compile package error")
+			gserrors.Panicf(err, "compile package error")
 		}
 
 		pos := Position{
