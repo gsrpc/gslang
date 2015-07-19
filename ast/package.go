@@ -1,36 +1,20 @@
 package ast
 
-//Package AST's package node
+// Package .
 type Package struct {
-	BasicNode                    //inher from BasicNode
-	Scripts   map[string]*Script //scripts belong to this package
-	Types     map[string]Expr    //types belong to this package
+	_Node                      // Mixin _Node
+	scripts map[string]*Script // package contain scripts
 }
 
-//NewPackage create new package object
+// NewPackage create new package
 func NewPackage(name string) *Package {
-	node := &Package{
-		Scripts: make(map[string]*Script),
-		Types:   make(map[string]Expr),
+	return &Package{
+		_Node:   _Node{name: name},
+		scripts: make(map[string]*Script),
 	}
-
-	node.Init(name, nil)
-
-	return node
 }
 
-//NewType create new type belong to this package
-func (node *Package) NewType(expr Expr) (Expr, bool) {
-	if old, ok := node.Types[expr.Name()]; ok {
-		return old, false
-	}
-
-	node.Types[expr.Name()] = expr
-
-	return expr, true
-}
-
-//Package create new type belong to this package
-func (node *Package) Package() *Package {
-	return node
+// AddScript .
+func (pkg *Package) AddScript(name string, script *Script) {
+	pkg.scripts[name] = script
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
@@ -14,14 +15,17 @@ import (
 	"github.com/gsdocker/gslogger"
 )
 
-//Lexer errors
+// lexer error
 var (
-	ErrLexer = errors.New("lexer error")
+	ErrLexer = errors.New("gslang lexer error")
 )
+
+// TokenType type
+type TokenType rune
 
 //Token types
 const (
-	TokenEOF rune = -(iota + 1)
+	TokenEOF TokenType = -(iota + 1)
 	TokenID
 	TokenINT
 	TokenFLOAT
@@ -50,7 +54,7 @@ const (
 	KeyImport
 )
 
-var tokenName = map[rune]string{
+var tokenName = map[TokenType]string{
 	TokenEOF:        "EOF",
 	TokenID:         "ID",
 	TokenINT:        "INT",
@@ -78,7 +82,7 @@ var tokenName = map[rune]string{
 	KeyImport:       "import",
 }
 
-var keyMap = map[string]rune{
+var keyMap = map[string]TokenType{
 	"byte":     KeyByte,
 	"sbyte":    KeySByte,
 	"int16":    KeyInt16,
@@ -98,8 +102,8 @@ var keyMap = map[string]rune{
 	"import":   KeyImport,
 }
 
-//TokenName get token string
-func TokenName(token rune) string {
+//String implement fmt.Stringer interface
+func (token TokenType) String() string {
 	if token > 0 {
 		return string(token)
 	}
@@ -107,17 +111,42 @@ func TokenName(token rune) string {
 	return tokenName[token]
 }
 
-//Token the gslang token object
-type Token struct {
-	Type  rune        //token type
-	Value interface{} //token value
-	Pos   Position    //token position in source file
+//Position position of source code file
+type Position struct {
+	FileName string //script file name
+	Lines    int    //line number, starting at 1
+	Column   int    //column number, starting at 1 (character count per line)
 }
 
-//NewToken create new token with type and token value
-func NewToken(t rune, val interface{}) *Token {
+//ShortName get the source code file short name
+func (pos Position) ShortName() string {
+	return filepath.Base(pos.FileName)
+}
+
+func (pos Position) String() string {
+	return fmt.Sprintf("%s(%d,%d)", pos.FileName, pos.Lines, pos.Column)
+}
+
+//Valid check if the position object is valid
+func (pos Position) Valid() bool {
+	if pos.Lines != 0 {
+		return true
+	}
+
+	return false
+}
+
+// Token .
+type Token struct {
+	Type  TokenType   // token type
+	Value interface{} //token value
+	Pos   Position    // token script position
+}
+
+//_NewToken create new token with type and token value
+func _NewToken(t rune, val interface{}) *Token {
 	return &Token{
-		Type:  t,
+		Type:  TokenType(t),
 		Value: val,
 	}
 }
@@ -126,7 +155,7 @@ func (token *Token) String() string {
 	if token.Value != nil {
 		return fmt.Sprintf(
 			"token %s\n\tval :%v\n\tpos :%s",
-			TokenName(token.Type),
+			token.Type,
 			token.Value,
 			token.Pos,
 		)
@@ -134,7 +163,7 @@ func (token *Token) String() string {
 
 	return fmt.Sprintf(
 		"token %s\n\tpos :%s",
-		TokenName(token.Type),
+		token.Type,
 		token.Pos,
 	)
 
@@ -155,17 +184,17 @@ type Lexer struct {
 }
 
 //NewLexer create new gslang lexer
-func NewLexer(filename string, reader io.Reader) *Lexer {
+func NewLexer(tag string, reader io.Reader) *Lexer {
 	return &Lexer{
 		Log:    gslogger.Get("gslang[lexer]"),
 		reader: bufio.NewReader(reader),
 		ws:     1<<'\t' | 1<<'\n' | 1<<'\r' | 1<<' ',
 		position: Position{
-			FileName: filename,
+			FileName: tag,
 			Lines:    1,
 			Column:   1,
 		},
-		curr: TokenEOF,
+		curr: rune(TokenEOF),
 	}
 }
 
@@ -180,7 +209,7 @@ func (lexer *Lexer) nextChar() error {
 
 	if err != nil {
 		if err == io.EOF {
-			lexer.curr = TokenEOF
+			lexer.curr = rune(TokenEOF)
 			return nil
 		}
 		return err
@@ -196,7 +225,7 @@ func (lexer *Lexer) nextChar() error {
 			c, err = lexer.reader.ReadByte()
 			if err != nil {
 				if err == io.EOF {
-					lexer.curr = TokenEOF
+					lexer.curr = rune(TokenEOF)
 					return nil
 				}
 				return err
@@ -235,7 +264,7 @@ func isDecimal(ch rune) bool {
 //next read next gslang token
 func (lexer *Lexer) next() (token *Token, err error) {
 
-	if TokenEOF == lexer.curr {
+	if rune(TokenEOF) == lexer.curr {
 		if err = lexer.nextChar(); err != nil {
 			return
 		}
@@ -255,8 +284,8 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	}
 
 	//check if arrived end of file
-	if lexer.curr == TokenEOF {
-		token = NewToken(TokenEOF, nil)
+	if lexer.curr == rune(TokenEOF) {
+		token = _NewToken(rune(TokenEOF), nil)
 		token.Pos = lexer.position
 		return
 	}
@@ -299,7 +328,7 @@ func (lexer *Lexer) next() (token *Token, err error) {
 			if lexer.curr == '/' || lexer.curr == '*' {
 				token, err = lexer.scanComment(lexer.curr)
 			} else {
-				token = NewToken(lexer.curr, nil)
+				token = _NewToken(lexer.curr, nil)
 			}
 		}
 
@@ -310,16 +339,16 @@ func (lexer *Lexer) next() (token *Token, err error) {
 		if err == nil {
 			//scan comment
 			if lexer.curr == '>' {
-				token = NewToken(TokenArrowRight, nil)
+				token = _NewToken(rune(TokenArrowRight), nil)
 				err = lexer.nextChar()
 			} else {
-				token = NewToken('-', nil)
+				token = _NewToken('-', nil)
 			}
 		}
 
 	default:
-		token = NewToken(lexer.curr, nil)
-		lexer.curr = TokenEOF
+		token = _NewToken(lexer.curr, nil)
+		lexer.curr = rune(TokenEOF)
 	}
 
 	if err == nil {
@@ -346,7 +375,7 @@ func (lexer *Lexer) scanComment(ch rune) (*Token, error) {
 			}
 		}
 
-		return NewToken(TokenCOMMENT, buff.String()), nil
+		return _NewToken(rune(TokenCOMMENT), buff.String()), nil
 	}
 
 	err := lexer.nextChar() // read character after "//"
@@ -380,7 +409,7 @@ func (lexer *Lexer) scanComment(ch rune) (*Token, error) {
 		buff.WriteRune(ch0)
 	}
 
-	return NewToken(TokenCOMMENT, buff.String()), nil
+	return _NewToken(rune(TokenCOMMENT), buff.String()), nil
 
 }
 
@@ -432,7 +461,7 @@ func (lexer *Lexer) scanString(quote rune) (token *Token, err error) {
 	if err != nil {
 		return nil, err
 	}
-	token = NewToken(TokenSTRING, buff.String())
+	token = _NewToken(rune(TokenSTRING), buff.String())
 
 	return
 }
@@ -447,7 +476,7 @@ func (lexer *Lexer) scanID() (token *Token, err error) {
 		}
 	}
 
-	token = NewToken(TokenID, string(buff.Bytes()))
+	token = _NewToken(rune(TokenID), string(buff.Bytes()))
 
 	return
 }
@@ -492,7 +521,7 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 				return nil, lexer.newerror(err.Error())
 			}
 
-			return NewToken(TokenINT, val), nil
+			return _NewToken(rune(TokenINT), val), nil
 		}
 	}
 
@@ -511,7 +540,7 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 			return nil, lexer.newerror(err.Error())
 		}
 
-		return NewToken(TokenFLOAT, val), nil
+		return _NewToken(rune(TokenFLOAT), val), nil
 	}
 
 	val, err := strconv.ParseInt(buff.String(), 0, 64)
@@ -519,7 +548,7 @@ func (lexer *Lexer) scanNum() (*Token, error) {
 	if err != nil {
 		return nil, lexer.newerror(err.Error())
 	}
-	return NewToken(TokenINT, val), nil
+	return _NewToken(rune(TokenINT), val), nil
 }
 
 func (lexer *Lexer) scanMantissa(buff *bytes.Buffer) {

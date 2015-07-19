@@ -1,12 +1,20 @@
 {
     "name":"github.com/gsdocker/gslang",
 
-    "domain":"task|gslang|golang",
+    "domain":"gslang|golang",
 
     "import" : [
         {"name" : "github.com/gsdocker/gsos","domain":"task|golang","version":"v2.0"},
         {"name" : "github.com/gsdocker/gserrors","domain":"task|golang","version":"v2.0"},
         {"name" : "github.com/gsdocker/gsconfig","domain":"task|golang","version":"v2.0"},
-        {"name" : "github.com/gsdocker/gslogger","domain":"task|golang","version":"v2.0"}
-    ]
+        {"name" : "github.com/gsdocker/gslogger","domain":"task|golang","version":"v2.0"},
+        {"name" : "github.com/gsmake/golang","domain":"task","version":"release/v3.0"}
+    ],
+
+    "properties":{
+
+        "gsmake.golang.test" :[
+            {"dir":"./test","flags":"-bench . -cpu 4"}
+        ]
+    }
 }
