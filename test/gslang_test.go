@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang"
+	"github.com/gsdocker/gslogger"
 )
 
 func TestToken(t *testing.T) {
@@ -32,5 +34,20 @@ func TestToken(t *testing.T) {
 		}
 
 		fmt.Printf("token %s\n", token)
+	}
+}
+
+func TestParser(t *testing.T) {
+
+	defer gslogger.Join()
+
+	compiler := gslang.NewCompiler()
+
+	err := compiler.Compile("test.gs", gslang.HandleParseError(func(err error, position gslang.Position, msg string) {
+		gserrors.Panicf(err, "parse %s error\n\t%s", position, msg)
+	}))
+
+	if err != nil {
+		t.Fatal(err)
 	}
 }

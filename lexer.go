@@ -3,7 +3,6 @@ package gslang
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -13,11 +12,6 @@ import (
 
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslogger"
-)
-
-// lexer error
-var (
-	ErrLexer = errors.New("gslang lexer error")
 )
 
 // TokenType type
@@ -52,6 +46,7 @@ const (
 	KeyTable
 	KeyContract
 	KeyImport
+	KeyPackage
 )
 
 var tokenName = map[TokenType]string{
@@ -79,7 +74,8 @@ var tokenName = map[TokenType]string{
 	KeyStruct:       "struct",
 	KeyTable:        "table",
 	KeyContract:     "contract",
-	KeyImport:       "import",
+	KeyImport:       "using",
+	KeyPackage:      "package",
 }
 
 var keyMap = map[string]TokenType{
@@ -99,7 +95,8 @@ var keyMap = map[string]TokenType{
 	"struct":   KeyStruct,
 	"table":    KeyTable,
 	"contract": KeyContract,
-	"import":   KeyImport,
+	"using":    KeyImport,
+	"package":  KeyPackage,
 }
 
 //String implement fmt.Stringer interface
@@ -140,7 +137,8 @@ func (pos Position) Valid() bool {
 type Token struct {
 	Type  TokenType   // token type
 	Value interface{} //token value
-	Pos   Position    // token script position
+	Start Position    // star position
+	End   Position    // end position
 }
 
 //_NewToken create new token with type and token value
@@ -154,17 +152,19 @@ func _NewToken(t rune, val interface{}) *Token {
 func (token *Token) String() string {
 	if token.Value != nil {
 		return fmt.Sprintf(
-			"token %s\n\tval :%v\n\tpos :%s",
+			"token %s\n\tval :%v\n\tstart :%s\n\tend :%s",
 			token.Type,
 			token.Value,
-			token.Pos,
+			token.Start,
+			token.End,
 		)
 	}
 
 	return fmt.Sprintf(
-		"token %s\n\tpos :%s",
+		"token %s\n\tstart :%s\n\tend :%s",
 		token.Type,
-		token.Pos,
+		token.Start,
+		token.End,
 	)
 
 }
@@ -196,6 +196,10 @@ func NewLexer(tag string, reader io.Reader) *Lexer {
 		},
 		curr: rune(TokenEOF),
 	}
+}
+
+func (lexer *Lexer) String() string {
+	return lexer.position.FileName
 }
 
 func (lexer *Lexer) newerror(fmtstring string, args ...interface{}) error {
@@ -274,7 +278,7 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	for lexer.ws&(1<<uint(lexer.curr)) != 0 {
 		//increase lines count
 		if lexer.curr == '\n' {
-			lexer.position.Column = 0
+			lexer.position.Column = 1
 			lexer.position.Lines++
 		}
 
@@ -286,11 +290,14 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	//check if arrived end of file
 	if lexer.curr == rune(TokenEOF) {
 		token = _NewToken(rune(TokenEOF), nil)
-		token.Pos = lexer.position
+		token.Start = lexer.position
+		token.End = lexer.position
 		return
 	}
 
 	position := lexer.position
+
+	position.Column = position.Column - 1
 
 	switch {
 	case unicode.IsLetter(lexer.curr) || lexer.curr == '_': //scan id
@@ -352,7 +359,14 @@ func (lexer *Lexer) next() (token *Token, err error) {
 	}
 
 	if err == nil {
-		token.Pos = position
+		token.Start = position
+
+		position = lexer.position
+
+		position.Column = position.Column - 1
+
+		token.End = position
+
 	}
 
 	return

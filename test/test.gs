@@ -1,5 +1,8 @@
-using gslang.AttributeUsage;
-using gslang.AttributeTarget;
+package gslang.test;
+
+using gslang.AttributeUsage; // tail comment
+/*same line comment*/using gslang.AttributeTarget;
+// header line comment
 using gslang.Exception;
 
 
