@@ -12,6 +12,7 @@ type Script struct {
 	using    map[string]*Using    // using instruction list
 	tables   map[string]*Table    // tables
 	contract map[string]*Contract // tables
+	enum     map[string]*Enum     // enums
 }
 
 // NewScript .
@@ -21,6 +22,7 @@ func NewScript(name string) *Script {
 		using:    make(map[string]*Using),
 		tables:   make(map[string]*Table),
 		contract: make(map[string]*Contract),
+		enum:     make(map[string]*Enum),
 	}
 
 	script._init(name)

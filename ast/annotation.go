@@ -12,7 +12,7 @@ type Annotation struct {
 func NewAnnotation(name string) *Annotation {
 	annotation := &Annotation{}
 
-	annotation._init("name")
+	annotation._init(name)
 
 	return annotation
 }

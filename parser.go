@@ -106,6 +106,10 @@ func (parser *Parser) parseType() bool {
 		return true
 	case lexer.KeyContract:
 		parser.expectContract("expect contract type define")
+		return true
+	case lexer.KeyEnum:
+		parser.expectEnum("expect enum type define")
+		return true
 	}
 	return false
 }
@@ -128,10 +132,92 @@ func (parser *Parser) parsePackage() {
 	parser.D("parse script's package line -- success")
 }
 
+func (parser *Parser) expectEnum(fmtstring string, args ...interface{}) *ast.Enum {
+
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	start := parser.expectf(lexer.KeyEnum, "expect keyword enum").Start
+
+	token := parser.expectf(lexer.TokenID, "expect contract name")
+
+	name := token.Value.(string)
+
+	enum, ok := parser.script.NewEnum(name)
+
+	parser.D("parse enum %s", name)
+
+	parser.attachAnnotation(enum)
+
+	if !ok {
+		parser.errorf(token.Start, "%s\n\tduplicate enum(%s) defined", msg, name)
+	}
+
+	parser.expectf(lexer.TokenType('{'), "contract body must start with {")
+
+	for {
+
+		for parser.parseComment() {
+
+		}
+
+		token = parser.peek()
+
+		if token.Type == lexer.TokenType('}') {
+			break
+		}
+
+		constantName := parser.expectf(lexer.TokenID, "expect enum constant name")
+
+		name = constantName.Value.(string)
+
+		constant, ok := enum.NewConstant(name)
+
+		if !ok {
+			parser.errorf(token.Start, "%s\n\tduplicate enum(%s) contract(%s) defined", msg, enum, name)
+		}
+
+		end := constantName.End
+
+		token = parser.peek()
+
+		if token.Type == lexer.TokenType('(') {
+
+			parser.next()
+
+			val := int32(parser.expectf(lexer.TokenINT, "expect constant value").Value.(int64))
+
+			constant.Value = val
+
+			end = parser.expectf(lexer.TokenType(')'), "enum constant val must end with )").End
+		}
+
+		_setNodePos(constant, constantName.Start, end)
+
+		parser.attachComment(constant)
+
+		token = parser.peek()
+
+		if token.Type != lexer.TokenType(',') {
+			break
+		}
+
+		parser.next()
+	}
+
+	end := parser.expectf(lexer.TokenType('}'), "contract body must end with }").End
+
+	_setNodePos(enum, start, end)
+
+	parser.attachComment(enum)
+
+	return enum
+
+}
+
 func (parser *Parser) expectContract(fmtstring string, args ...interface{}) *ast.Contract {
 	msg := fmt.Sprintf(fmtstring, args...)
 
-	parser.expectf(lexer.KeyContract, "expect keyword contract")
+	start := parser.expectf(lexer.KeyContract, "expect keyword contract").Start
 
 	token := parser.expectf(lexer.TokenID, "expect contract name")
 
@@ -143,15 +229,20 @@ func (parser *Parser) expectContract(fmtstring string, args ...interface{}) *ast
 
 	parser.D("parse contract %s", name)
 
+	parser.attachAnnotation(contract)
+
 	if !ok {
 		parser.errorf(token.Start, "%s\n\tduplicate contract(%s) defined", msg, name)
 	}
 
 	for parser.parseMethodDecl(contract) {
-
 	}
 
-	parser.expectf(lexer.TokenType('}'), "contract body must end with }")
+	end := parser.expectf(lexer.TokenType('}'), "contract body must end with }").End
+
+	_setNodePos(contract, start, end)
+
+	parser.attachComment(contract)
 
 	parser.D("parse contract %s -- success", name)
 
@@ -162,7 +253,7 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 
 	msg := fmt.Sprintf(fmtstring, args...)
 
-	parser.expectf(lexer.KeyTable, "expect keyword table")
+	start := parser.expectf(lexer.KeyTable, "expect keyword table").Start
 
 	token := parser.expectf(lexer.TokenID, "expect table name")
 
@@ -171,6 +262,8 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 	parser.expectf(lexer.TokenType('{'), "table body must start with {")
 
 	table, ok := parser.script.NewTable(name)
+
+	parser.attachAnnotation(table)
 
 	parser.D("parse table %s", name)
 
@@ -182,11 +275,24 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 
 	}
 
-	parser.expectf(lexer.TokenType('}'), "table body must end with }")
+	end := parser.expectf(lexer.TokenType('}'), "table body must end with }").End
+
+	_setNodePos(table, start, end)
+
+	parser.attachComment(table)
 
 	parser.D("parse table %s -- success", name)
 
 	return table
+}
+
+func (parser *Parser) attachAnnotation(node ast.Node) {
+
+	if parser.annotationStack != nil {
+		_AttachAnnotation(node, parser.annotationStack)
+		parser.D("attach annotations %v to %s", parser.annotationStack, node)
+		parser.annotationStack = nil
+	}
 }
 
 func (parser *Parser) attachComment(node ast.Node) {
@@ -210,7 +316,7 @@ func (parser *Parser) attachComment(node ast.Node) {
 }
 
 func (parser *Parser) parseMethodDecl(contract *ast.Contract) bool {
-	for parser.parseComment() {
+	for parser.parseAnnotation() {
 
 	}
 
@@ -231,6 +337,8 @@ func (parser *Parser) parseMethodDecl(contract *ast.Contract) bool {
 		if !ok {
 			parser.errorf(token.Start, "duplicate contract(%s) field(%s)", contract, name)
 		}
+
+		parser.attachAnnotation(method)
 
 		method.Return = returnVal
 
@@ -292,6 +400,10 @@ func (parser *Parser) parseParams(method *ast.Method) {
 			break
 		}
 
+		for parser.parseAnnotation() {
+
+		}
+
 		typeDecl := parser.expectTypeDecl("expect method param type declare")
 
 		nameToken := parser.expectf(lexer.TokenID, "expect method param name")
@@ -299,6 +411,8 @@ func (parser *Parser) parseParams(method *ast.Method) {
 		name := nameToken.Value.(string)
 
 		param, ok := method.NewParam(name, typeDecl)
+
+		parser.attachAnnotation(param)
 
 		if !ok {
 			parser.errorf(token.Start, "duplicate method(%s) param(%s)", method, name)
@@ -312,13 +426,14 @@ func (parser *Parser) parseParams(method *ast.Method) {
 
 func (parser *Parser) parseFieldDecl(table *ast.Table) bool {
 
-	for parser.parseComment() {
-
-	}
-
 	token := parser.peek()
 
 	if token.Type != lexer.TokenType('}') {
+
+		for parser.parseAnnotation() {
+
+		}
+
 		typeDecl := parser.expectTypeDecl("expect table(%s) field type declare", table)
 
 		tokenName := parser.expectf(lexer.TokenID, "expect table(%s) field name", table)
@@ -332,6 +447,8 @@ func (parser *Parser) parseFieldDecl(table *ast.Table) bool {
 		if !ok {
 			parser.errorf(token.Start, "duplicate table(%s) field(%s)", table, name)
 		}
+
+		parser.attachAnnotation(field)
 
 		_setNodePos(field, token.Start, tokenName.End)
 
@@ -683,17 +800,15 @@ func (parser *Parser) expectNumeric(fmtStr string, args ...interface{}) (number 
 func (parser *Parser) expectFullName(fmtstring string, args ...interface{}) (string, lexer.Position, lexer.Position) {
 	msg := fmt.Sprintf(fmtstring, args...)
 
-	var (
-		buff  bytes.Buffer
-		start lexer.Position
-		end   lexer.Position
-	)
+	var buff bytes.Buffer
 
 	token := parser.expectf(lexer.TokenID, msg)
 
 	buff.WriteString(token.Value.(string))
 
-	start = token.Start
+	start := token.Start
+
+	end := token.End
 
 	for {
 		token = parser.peek()
@@ -727,6 +842,8 @@ func (parser *Parser) parseAnnotation() bool {
 		return false
 	}
 
+	start := token.Start
+
 	parser.next()
 
 	name, start, end := parser.expectFullName("expect annotation name")
@@ -738,17 +855,13 @@ func (parser *Parser) parseAnnotation() bool {
 	token = parser.peek()
 
 	if token.Type == lexer.TokenType('(') {
-		parser.expectArgsTable("expect annotation arg table")
+
+		args := parser.expectArgsTable("expect annotation arg table")
+
+		_, end = Pos(args)
 	}
 
 	_setNodePos(annotation, start, end)
-
-	if comment, ok := parser.tailComment(); ok {
-		if _AttachComment(annotation, comment) {
-			parser.D("attach annotation comment :\n|%s|", comment)
-			parser.popTailComment()
-		}
-	}
 
 	parser.annotationStack = append(parser.annotationStack, annotation)
 

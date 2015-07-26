@@ -11,9 +11,10 @@ import (
 
 // Extra key list
 const (
-	ExtraStartPos = "start"
-	ExtraEndPos   = "end"
-	ExtraComment  = "comment"
+	ExtraStartPos   = "start"
+	ExtraEndPos     = "end"
+	ExtraComment    = "comment"
+	ExtraAnnotation = "annotation"
 )
 
 func _setNodePos(node ast.Node, start lexer.Position, end lexer.Position) {
@@ -36,6 +37,22 @@ func _AttachComment(node ast.Node, comment *ast.Comment) bool {
 	}
 
 	return false
+}
+
+func _AttachAnnotation(node ast.Node, annotation []*ast.Annotation) {
+
+	anns := Annotation(node)
+
+	anns = append(anns, annotation...)
+
+	node.SetExtra(ExtraComment, anns)
+}
+
+// Annotation .
+func Annotation(node ast.Node) (anns []*ast.Annotation) {
+	node.GetExtra(ExtraAnnotation, &anns)
+
+	return
 }
 
 // Pos .

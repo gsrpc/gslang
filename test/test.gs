@@ -21,14 +21,18 @@ table RemoteException {}
 
 // HttpREST API
 contract HttpREST {
+    @Async
     // invoke http post method
-    void Post(byte[] content) throws (RemoteException,CodeException);
+    void Post(@Out byte[] content) throws (RemoteException,CodeException);
     // get invoke http get method
     byte[] Get() throws (RemoteException);
 }
 
 // remote exception
+@Flag
 @Exception
 enum CodeException {
-
+    /*test*/
+    Success, //test 2
+    Unknown(2)
 }
