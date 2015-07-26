@@ -3,6 +3,8 @@ package ast
 import (
 	"errors"
 	"fmt"
+
+	"github.com/gsdocker/gslang/lexer"
 )
 
 // errors .
@@ -22,8 +24,10 @@ type NamedArg struct {
 }
 
 // NewNamedArg new named arg
-func NewNamedArg(name string) *NamedArg {
-	args := &NamedArg{}
+func NewNamedArg(name string, arg Expr) *NamedArg {
+	args := &NamedArg{
+		Arg: arg,
+	}
 
 	args._init(name)
 
@@ -86,15 +90,15 @@ func NewString(val string) *String {
 	return lit
 }
 
-// Number literal number
-type Number struct {
+// Numeric literal number
+type Numeric struct {
 	_Node // Mixin default node implement
 	Val   float64
 }
 
-// NewNumber .
-func NewNumber(val float64) *Number {
-	lit := &Number{
+// NewNumeric .
+func NewNumeric(val float64) *Numeric {
+	lit := &Numeric{
 		Val: val,
 	}
 
@@ -134,28 +138,68 @@ func NewConstantRef(name string) *ConstantRef {
 	return lit
 }
 
-// Op .
-type Op int
+// NewObj .
+type NewObj struct {
+	_Node // Mixin default node implement
+	Args  Expr
+}
 
-// Op list
+// NewNewObj .
+func NewNewObj(name string, args Expr) *NewObj {
+	lit := &NewObj{
+		Args: args,
+	}
+
+	lit._init(name)
+
+	return lit
+}
+
+// OpType type
+type OpType int
+
+// Op type list
 const (
-	OpBitwiseOr Op = iota
-	OpBitwiseAnd
+	OpBinary OpType = 1 << iota
+	OpUnary
 )
 
 // UnaryOp .
 type UnaryOp struct {
-	_Node    // Mixin default node implement
-	Code  Op // Opcode
+	_Node                   // Mixin default node implement
+	Token   lexer.TokenType // op code
+	Operand Expr            // Binary op object
 }
 
 // NewUnaryOp .
-func NewUnaryOp(code Op) *UnaryOp {
+func NewUnaryOp(token lexer.TokenType, operand Expr) *UnaryOp {
 	lit := &UnaryOp{
-		Code: code,
+		Token:   token,
+		Operand: operand,
 	}
 
-	lit._init(fmt.Sprintf(""))
+	lit._init(token.String())
+
+	return lit
+}
+
+// BinaryOp .
+type BinaryOp struct {
+	_Node                 // Mixin default node implement
+	Token lexer.TokenType // op code
+	LHS   Expr            // Binary op left handle experand
+	RHS   Expr            // Binary op right handle experand
+}
+
+// NewBinaryOp .
+func NewBinaryOp(token lexer.TokenType, lhs, rhs Expr) *BinaryOp {
+	lit := &BinaryOp{
+		Token: token,
+		LHS:   lhs,
+		RHS:   rhs,
+	}
+
+	lit._init(token.String())
 
 	return lit
 }

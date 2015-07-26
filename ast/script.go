@@ -8,15 +8,19 @@ type Using struct {
 // Script .
 type Script struct {
 	_Node
-	Package string            // script's package name
-	using   map[string]*Using // using instruction list
+	Package  string               // script's package name
+	using    map[string]*Using    // using instruction list
+	tables   map[string]*Table    // tables
+	contract map[string]*Contract // tables
 }
 
 // NewScript .
 func NewScript(name string) *Script {
 
 	script := &Script{
-		using: make(map[string]*Using),
+		using:    make(map[string]*Using),
+		tables:   make(map[string]*Table),
+		contract: make(map[string]*Contract),
 	}
 
 	script._init(name)

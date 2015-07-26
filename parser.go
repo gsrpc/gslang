@@ -5,20 +5,21 @@ import (
 	"fmt"
 
 	"github.com/gsdocker/gslang/ast"
+	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
 )
 
 // Parser gslang parser
 type Parser struct {
 	gslogger.Log                      // mixin logger
-	lexer           *Lexer            // token lexer
+	lexer           *lexer.Lexer      // token lexer
 	script          *ast.Script       // current script
 	commentStack    []*ast.Comment    // comment stack
 	annotationStack []*ast.Annotation // comment stack
 	errorHandler    ErrorHandler      // error Handler
 }
 
-func (compiler *Compiler) parse(lexer *Lexer, errorHandler ErrorHandler) *ast.Script {
+func (compiler *Compiler) parse(lexer *lexer.Lexer, errorHandler ErrorHandler) *ast.Script {
 
 	return (&Parser{
 		Log:          gslogger.Get("parser"),
@@ -28,7 +29,7 @@ func (compiler *Compiler) parse(lexer *Lexer, errorHandler ErrorHandler) *ast.Sc
 	}).parse()
 }
 
-func (parser *Parser) peek() *Token {
+func (parser *Parser) peek() *lexer.Token {
 	token, err := parser.lexer.Peek()
 	if err != nil {
 		panic(err)
@@ -37,7 +38,7 @@ func (parser *Parser) peek() *Token {
 	return token
 }
 
-func (parser *Parser) next() (token *Token) {
+func (parser *Parser) next() (token *lexer.Token) {
 	token, err := parser.lexer.Next()
 	if err != nil {
 		panic(err)
@@ -46,7 +47,7 @@ func (parser *Parser) next() (token *Token) {
 	return token
 }
 
-func (parser *Parser) errorf(position Position, fmtstring string, args ...interface{}) {
+func (parser *Parser) errorf(position lexer.Position, fmtstring string, args ...interface{}) {
 	parser.errorHandler.HandleParseError(
 		ErrParser,
 		position,
@@ -54,7 +55,7 @@ func (parser *Parser) errorf(position Position, fmtstring string, args ...interf
 	)
 }
 
-func (parser *Parser) errorf2(err error, position Position, fmtstring string, args ...interface{}) {
+func (parser *Parser) errorf2(err error, position lexer.Position, fmtstring string, args ...interface{}) {
 	parser.errorHandler.HandleParseError(
 		err,
 		position,
@@ -62,13 +63,13 @@ func (parser *Parser) errorf2(err error, position Position, fmtstring string, ar
 	)
 }
 
-func (parser *Parser) expectf(expect TokenType, fmtstring string, args ...interface{}) *Token {
+func (parser *Parser) expectf(expect lexer.TokenType, fmtstring string, args ...interface{}) *lexer.Token {
 
 	for {
 		token := parser.next()
 
 		if token.Type != expect {
-			parser.errorf(token.Start, fmt.Sprintf(fmtstring, args...))
+			parser.errorf(token.Start, fmt.Sprintf("current token(%s) \n%s", token.Type, fmt.Sprintf(fmtstring, args...)))
 			continue
 		}
 
@@ -85,49 +86,610 @@ func (parser *Parser) parse() *ast.Script {
 	for parser.parseImport() {
 	}
 
-	for parser.parseAnnotation() {
+	for parser.parseType() {
 
 	}
 
 	return parser.script
 }
 
-func (parser *Parser) debug(fmtString string, args ...interface{}) {
-	parser.Log.D("%s\n\tfile :%s", fmt.Sprintf(fmtString, args...), parser.script)
+func (parser *Parser) parseType() bool {
+	for parser.parseAnnotation() {
+
+	}
+
+	token := parser.peek()
+
+	switch token.Type {
+	case lexer.KeyTable:
+		parser.expectTable("expect table type define")
+		return true
+	case lexer.KeyContract:
+		parser.expectContract("expect contract type define")
+	}
+	return false
 }
 
 func (parser *Parser) parsePackage() {
 
-	parser.debug("[] parse script's package line")
+	parser.D("[] parse script's package line")
 
 	for parser.parseComment() {
 	}
 
-	parser.expectf(KeyPackage, "script must start with package keyword")
+	parser.expectf(lexer.KeyPackage, "script must start with package keyword")
 
 	parser.script.Package, _, _ = parser.expectFullName("expect script's package name")
 
-	parser.expectf(TokenType(';'), "package name must end with ';'")
+	parser.expectf(lexer.TokenType(';'), "package name must end with ';'")
 
-	parser.debug("package [%s]", parser.script.Package)
+	parser.D("package [%s]", parser.script.Package)
 
-	parser.debug("parse script's package line -- success")
+	parser.D("parse script's package line -- success")
 }
 
-func (parser *Parser) expectArgsTable(fmtstring string, args ...interface{}) (*ast.Expr, Position, Position) {
-	return nil, Position{}, Position{}
+func (parser *Parser) expectContract(fmtstring string, args ...interface{}) *ast.Contract {
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	parser.expectf(lexer.KeyContract, "expect keyword contract")
+
+	token := parser.expectf(lexer.TokenID, "expect contract name")
+
+	name := token.Value.(string)
+
+	parser.expectf(lexer.TokenType('{'), "contract body must start with {")
+
+	contract, ok := parser.script.NewContract(name)
+
+	parser.D("parse contract %s", name)
+
+	if !ok {
+		parser.errorf(token.Start, "%s\n\tduplicate contract(%s) defined", msg, name)
+	}
+
+	for parser.parseMethodDecl(contract) {
+
+	}
+
+	parser.expectf(lexer.TokenType('}'), "contract body must end with }")
+
+	parser.D("parse contract %s -- success", name)
+
+	return contract
 }
 
-func (parser *Parser) expectFullName(fmtstring string, args ...interface{}) (string, Position, Position) {
+func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Table {
+
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	parser.expectf(lexer.KeyTable, "expect keyword table")
+
+	token := parser.expectf(lexer.TokenID, "expect table name")
+
+	name := token.Value.(string)
+
+	parser.expectf(lexer.TokenType('{'), "table body must start with {")
+
+	table, ok := parser.script.NewTable(name)
+
+	parser.D("parse table %s", name)
+
+	if !ok {
+		parser.errorf(token.Start, "%s\n\tduplicate table(%s) defined", msg, name)
+	}
+
+	for parser.parseFieldDecl(table) {
+
+	}
+
+	parser.expectf(lexer.TokenType('}'), "table body must end with }")
+
+	parser.D("parse table %s -- success", name)
+
+	return table
+}
+
+func (parser *Parser) attachComment(node ast.Node) {
+
+	if comment, ok := parser.tailComment(); ok {
+		if _AttachComment(node, comment) {
+			parser.D("attach %s comment :\n|%s|", node, comment)
+			parser.popTailComment()
+		}
+	}
+
+	for parser.parseComment() {
+		comment, _ := parser.tailComment()
+		if _AttachComment(node, comment) {
+			parser.D("attach %s comment :\n|%s|", node, comment)
+			parser.popTailComment()
+		}
+
+		break
+	}
+}
+
+func (parser *Parser) parseMethodDecl(contract *ast.Contract) bool {
+	for parser.parseComment() {
+
+	}
+
+	token := parser.peek()
+
+	if token.Type != lexer.TokenType('}') {
+
+		returnVal := parser.expectTypeDecl("expect method return type")
+
+		tokenName := parser.expectf(lexer.TokenID, "expect method name")
+
+		name := tokenName.Value.(string)
+
+		parser.D("parse method %s", name)
+
+		method, ok := contract.NewMethod(name)
+
+		if !ok {
+			parser.errorf(token.Start, "duplicate contract(%s) field(%s)", contract, name)
+		}
+
+		method.Return = returnVal
+
+		parser.parseParams(method)
+
+		parser.parseExceptions(method)
+
+		end := parser.expectf(lexer.TokenType(';'), "expect method name").End
+
+		_setNodePos(method, token.Start, end)
+
+		parser.attachComment(method)
+
+		return true
+	}
+
+	return false
+}
+
+func (parser *Parser) parseExceptions(method *ast.Method) {
+
+	token := parser.peek()
+
+	if token.Type != lexer.KeyThrows {
+		return
+	}
+
+	parser.next()
+
+	parser.expectf(lexer.TokenType('('), "method exception table must start with (")
+
+	for {
+
+		typeDecl := parser.expectTypeDecl("expect exception type")
+
+		method.NewException(typeDecl)
+
+		token := parser.peek()
+
+		if token.Type != lexer.TokenType(',') {
+			break
+		}
+
+		parser.next()
+	}
+
+	parser.expectf(lexer.TokenType(')'), "method exception table must end with )")
+}
+
+func (parser *Parser) parseParams(method *ast.Method) {
+
+	parser.expectf(lexer.TokenType('('), "method param table must start with (")
+
+	for {
+
+		token := parser.peek()
+
+		if token.Type == lexer.TokenType(')') {
+			break
+		}
+
+		typeDecl := parser.expectTypeDecl("expect method param type declare")
+
+		nameToken := parser.expectf(lexer.TokenID, "expect method param name")
+
+		name := nameToken.Value.(string)
+
+		param, ok := method.NewParam(name, typeDecl)
+
+		if !ok {
+			parser.errorf(token.Start, "duplicate method(%s) param(%s)", method, name)
+		}
+
+		_setNodePos(param, token.Start, nameToken.End)
+	}
+
+	parser.expectf(lexer.TokenType(')'), "method param table must end with )")
+}
+
+func (parser *Parser) parseFieldDecl(table *ast.Table) bool {
+
+	for parser.parseComment() {
+
+	}
+
+	token := parser.peek()
+
+	if token.Type != lexer.TokenType('}') {
+		typeDecl := parser.expectTypeDecl("expect table(%s) field type declare", table)
+
+		tokenName := parser.expectf(lexer.TokenID, "expect table(%s) field name", table)
+
+		parser.expectf(lexer.TokenType(';'), "expect table(%s) field end tag ;", table)
+
+		name := tokenName.Value.(string)
+
+		field, ok := table.NewField(name, typeDecl)
+
+		if !ok {
+			parser.errorf(token.Start, "duplicate table(%s) field(%s)", table, name)
+		}
+
+		_setNodePos(field, token.Start, tokenName.End)
+
+		parser.attachComment(field)
+
+		return true
+	}
+
+	return false
+}
+
+func (parser *Parser) expectTypeDecl(fmtstring string, args ...interface{}) (typeDecl ast.Type) {
+
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	for {
+		token := parser.peek()
+
+		switch token.Type {
+		case lexer.KeyByte, lexer.KeySByte, lexer.KeyInt16, lexer.KeyUInt16,
+			lexer.KeyInt32, lexer.KeyUInt32, lexer.KeyInt64, lexer.KeyUInt64,
+			lexer.KeyFloat32, lexer.KeyFloat64, lexer.KeyString, lexer.KeyBool, lexer.KeyVoid:
+
+			typeDecl = ast.NewBuiltinType(token.Type)
+
+			_setNodePos(typeDecl, token.Start, token.End)
+
+			parser.next()
+
+		case lexer.TokenID:
+			name, star, end := parser.expectFullName("expect type declare")
+
+			typeDecl = ast.NewTypeRef(name)
+
+			_setNodePos(typeDecl, star, end)
+
+		default:
+			parser.errorf(token.Start, "%s\n\tunexpect token %s", msg, token)
+			continue
+		}
+
+		for {
+
+			if seqType, ok := parser.parseSeq(typeDecl); ok {
+				typeDecl = seqType
+				continue
+			}
+
+			break
+		}
+
+		return
+	}
+
+}
+
+func (parser *Parser) parseSeq(component ast.Type) (typeDecl ast.Type, ok bool) {
+
+	token := parser.peek()
+
+	if token.Type != lexer.TokenType('[') {
+		return nil, false
+	}
+
+	ok = true
+
+	parser.next()
+
+	token = parser.peek()
+
+	if token.Type == lexer.TokenINT {
+		parser.next()
+		typeDecl = ast.NewSeq(component, int(token.Value.(int64)))
+	} else {
+		typeDecl = ast.NewSeq(component, -1)
+	}
+
+	end := parser.expectf(lexer.TokenType(']'), "seq type must end with ]").End
+
+	start, _ := Pos(component)
+
+	_setNodePos(typeDecl, start, end)
+
+	return
+}
+
+func (parser *Parser) expectArgsTable(fmtstring string, args ...interface{}) (expr ast.Expr) {
+
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	for {
+
+		token := parser.peek()
+
+		expr := parser.parseArgsTable()
+
+		if expr != nil {
+			return expr
+		}
+
+		parser.errorf(token.Start, msg)
+
+		parser.next()
+	}
+}
+
+func (parser *Parser) parseArgsTable() ast.Expr {
+
+	token := parser.peek()
+
+	if token.Type != lexer.TokenType('(') {
+
+		return nil
+	}
+
+	parser.next()
+
+	token = parser.peek()
+
+	if token.Value == lexer.TokenType(')') {
+		return ast.NewArgsTable(true)
+	}
+
+	token = parser.peek()
+
+	start := token.Start
+
+	end := token.End
+
+	var args *ast.ArgsTable
+
+	// this is named args table
+	if token.Type == lexer.TokenLABEL {
+		args = ast.NewArgsTable(true)
+
+		for {
+
+			token := parser.expectf(lexer.TokenLABEL, "expect arg label")
+
+			label := token.Value.(string)
+
+			arg := parser.expectArg("expect label(%s) value", label)
+
+			namedArg := ast.NewNamedArg(label, arg)
+
+			_, end = Pos(arg)
+
+			_setNodePos(namedArg, token.Start, end)
+
+			args.Append(namedArg)
+
+			if parser.peek().Type != lexer.TokenType(',') {
+				break
+			}
+		}
+
+	} else {
+
+		args = ast.NewArgsTable(false)
+
+		for {
+
+			arg := parser.expectArg("expect arg")
+
+			args.Append(arg)
+
+			if parser.peek().Type != lexer.TokenType(',') {
+				break
+			}
+		}
+	}
+
+	_setNodePos(args, start, end)
+
+	parser.expectf(lexer.TokenType(')'), "arg table must end with ')'")
+
+	return args
+}
+
+func (parser *Parser) expectArg(fmtstring string, args ...interface{}) (expr ast.Expr) {
+	msg := fmt.Sprintf(fmtstring, args...)
+
+	for {
+
+		token := parser.peek()
+
+		expr = parser.parseArg()
+
+		if expr != nil {
+			return
+		}
+
+		parser.errorf(token.Start, msg)
+
+		parser.next()
+	}
+
+}
+
+func (parser *Parser) parseArg() ast.Expr {
+
+	token := parser.peek()
+
+	switch token.Type {
+	case lexer.TokenINT, lexer.TokenFLOAT, lexer.TokenSTRING, lexer.TokenTrue, lexer.TokenFalse, lexer.TokenID:
+		return parser.expectExpr("expect arg expr")
+	case lexer.OpPlus:
+		numeric := parser.expectNumeric("unary op %s expect numeric object", lexer.OpPlus)
+
+		_, end := Pos(numeric)
+
+		_setNodePos(numeric, token.Start, end)
+
+		return numeric
+	case lexer.OpSub:
+		numeric := parser.expectNumeric("unary op %s expect numeric object", lexer.OpSub)
+
+		numeric.Val = -numeric.Val
+
+		_, end := Pos(numeric)
+
+		_setNodePos(numeric, token.Start, end)
+
+		return numeric
+	default:
+
+		return nil
+	}
+}
+
+func (parser *Parser) expectExpr(fmtStr string, args ...interface{}) ast.Expr {
+
+	msg := fmt.Sprintf(fmtStr, args...)
+
+	for {
+		token := parser.peek()
+
+		var expr ast.Expr
+
+		switch token.Type {
+
+		case lexer.TokenINT:
+			parser.next()
+
+			expr = ast.NewNumeric(float64(token.Value.(int64)))
+
+			_setNodePos(expr, token.Start, token.End)
+
+		case lexer.TokenFLOAT:
+
+			parser.next()
+
+			expr = ast.NewNumeric(token.Value.(float64))
+
+			_setNodePos(expr, token.Start, token.End)
+
+		case lexer.TokenSTRING:
+			parser.next()
+
+			expr = ast.NewString(token.Value.(string))
+
+			_setNodePos(expr, token.Start, token.End)
+
+		case lexer.TokenTrue:
+			parser.next()
+
+			expr = ast.NewBoolean(true)
+
+			_setNodePos(expr, token.Start, token.End)
+
+		case lexer.TokenFalse:
+			parser.next()
+
+			expr = ast.NewBoolean(false)
+
+			_setNodePos(expr, token.Start, token.End)
+
+		case lexer.TokenID:
+			name, start, end := parser.expectFullName("expect constant reference or table instance")
+
+			token = parser.peek()
+
+			if token.Type == lexer.TokenType('(') {
+				initargs := parser.expectArgsTable("expect table instance init args table")
+				newObj := ast.NewNewObj(name, initargs)
+
+				_setNodePos(newObj, start, end)
+
+				return newObj
+			}
+
+			expr = ast.NewConstantRef(name)
+
+			_setNodePos(expr, start, end)
+		}
+
+		if expr != nil {
+
+			token := parser.peek()
+
+			switch token.Type {
+			case lexer.OpBitOr, lexer.OpBitAnd:
+
+				parser.next()
+
+				rhs := parser.expectExpr("expect binary op(%s) rhs", token.Type)
+
+				binaryOp := ast.NewBinaryOp(token.Type, expr, rhs)
+
+				start, _ := Pos(expr)
+
+				_, end := Pos(binaryOp)
+
+				_setNodePos(binaryOp, start, end)
+
+				expr = binaryOp
+			}
+
+			return expr
+		}
+
+		parser.errorf(token.Start, msg)
+
+		parser.next()
+	}
+}
+
+func (parser *Parser) expectNumeric(fmtStr string, args ...interface{}) (number *ast.Numeric) {
+	msg := fmt.Sprintf(fmtStr, args...)
+
+	for {
+		token := parser.next()
+
+		if token.Type == lexer.TokenINT {
+			number = ast.NewNumeric(float64(token.Value.(int64)))
+		} else if token.Type == lexer.TokenFLOAT {
+			number = ast.NewNumeric(token.Value.(float64))
+		}
+
+		if number != nil {
+			return number
+		}
+
+		parser.errorf(token.Start, msg)
+	}
+
+}
+
+func (parser *Parser) expectFullName(fmtstring string, args ...interface{}) (string, lexer.Position, lexer.Position) {
 	msg := fmt.Sprintf(fmtstring, args...)
 
 	var (
 		buff  bytes.Buffer
-		start Position
-		end   Position
+		start lexer.Position
+		end   lexer.Position
 	)
 
-	token := parser.expectf(TokenID, msg)
+	token := parser.expectf(lexer.TokenID, msg)
 
 	buff.WriteString(token.Value.(string))
 
@@ -136,7 +698,7 @@ func (parser *Parser) expectFullName(fmtstring string, args ...interface{}) (str
 	for {
 		token = parser.peek()
 
-		if token.Type != TokenType('.') {
+		if token.Type != lexer.TokenType('.') {
 			break
 		}
 
@@ -144,7 +706,7 @@ func (parser *Parser) expectFullName(fmtstring string, args ...interface{}) (str
 
 		parser.next()
 
-		token = parser.expectf(TokenID, msg)
+		token = parser.expectf(lexer.TokenID, msg)
 
 		buff.WriteString(token.Value.(string))
 
@@ -161,7 +723,7 @@ func (parser *Parser) parseAnnotation() bool {
 
 	token := parser.peek()
 
-	if token.Type != TokenType('@') {
+	if token.Type != lexer.TokenType('@') {
 		return false
 	}
 
@@ -171,15 +733,22 @@ func (parser *Parser) parseAnnotation() bool {
 
 	annotation := ast.NewAnnotation(name)
 
-	parser.debug("annotation [%s]", name)
+	parser.D("annotation [%s]", name)
 
 	token = parser.peek()
 
-	if token.Type == TokenType('(') {
+	if token.Type == lexer.TokenType('(') {
 		parser.expectArgsTable("expect annotation arg table")
 	}
 
 	_setNodePos(annotation, start, end)
+
+	if comment, ok := parser.tailComment(); ok {
+		if _AttachComment(annotation, comment) {
+			parser.D("attach annotation comment :\n|%s|", comment)
+			parser.popTailComment()
+		}
+	}
 
 	parser.annotationStack = append(parser.annotationStack, annotation)
 
@@ -189,7 +758,7 @@ func (parser *Parser) parseAnnotation() bool {
 func (parser *Parser) parseComment() bool {
 
 	token := parser.peek()
-	if token.Type != TokenCOMMENT {
+	if token.Type != lexer.TokenCOMMENT {
 		return false
 	}
 
@@ -200,7 +769,7 @@ func (parser *Parser) parseComment() bool {
 
 		comment := parser.commentStack[len(parser.commentStack)-1]
 
-		var pos Position
+		var pos lexer.Position
 
 		comment.GetExtra("end", &pos)
 
@@ -253,7 +822,7 @@ func (parser *Parser) parseImport() bool {
 	token := parser.peek()
 
 	//the import instructions must be typed at the beginning of script
-	if token.Type != KeyImport {
+	if token.Type != lexer.KeyImport {
 		return false
 	}
 
@@ -264,28 +833,11 @@ func (parser *Parser) parseImport() bool {
 
 	using := parser.script.Using(usingNamePath)
 
+	parser.expectf(lexer.TokenType(';'), "import name path must end with ';'")
+
 	_setNodePos(using, start, end)
 
-	if comment, ok := parser.tailComment(); ok {
-		if _AttachComment(using, comment) {
-			parser.debug("attach using name path comment :\n|%s|", comment)
-			parser.popTailComment()
-		}
-	}
-
-	parser.debug("using [%s]", using)
-
-	parser.expectf(TokenType(';'), "import name path must end with ';'")
-
-	for parser.parseComment() {
-		comment, _ := parser.tailComment()
-		if _AttachComment(using, comment) {
-			parser.debug("attach using name path comment :\n|%s|", comment)
-			parser.popTailComment()
-		}
-
-		break
-	}
+	parser.attachComment(using)
 
 	return true
 }

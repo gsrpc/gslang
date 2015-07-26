@@ -8,6 +8,7 @@ import (
 
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang"
+	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
 )
 
@@ -19,17 +20,17 @@ func TestToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lexer := gslang.NewLexer("mem", bytes.NewBuffer(content))
+	tokenizer := lexer.NewLexer("mem", bytes.NewBuffer(content))
 
 	for {
 
-		token, err := lexer.Next()
+		token, err := tokenizer.Next()
 
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if token.Type == gslang.TokenEOF {
+		if token.Type == lexer.TokenEOF {
 			break
 		}
 
@@ -43,7 +44,7 @@ func TestParser(t *testing.T) {
 
 	compiler := gslang.NewCompiler()
 
-	err := compiler.Compile("test.gs", gslang.HandleParseError(func(err error, position gslang.Position, msg string) {
+	err := compiler.Compile("test.gs", gslang.HandleParseError(func(err error, position lexer.Position, msg string) {
 		gserrors.Panicf(err, "parse %s error\n\t%s", position, msg)
 	}))
 

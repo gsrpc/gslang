@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/gsdocker/gslang/ast"
+	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
 )
 
@@ -15,7 +16,7 @@ const (
 	ExtraComment  = "comment"
 )
 
-func _setNodePos(node ast.Node, start Position, end Position) {
+func _setNodePos(node ast.Node, start lexer.Position, end lexer.Position) {
 	node.SetExtra(ExtraStartPos, start)
 	node.SetExtra(ExtraEndPos, end)
 }
@@ -38,7 +39,7 @@ func _AttachComment(node ast.Node, comment *ast.Comment) bool {
 }
 
 // Pos .
-func Pos(node ast.Node) (start Position, end Position) {
+func Pos(node ast.Node) (start lexer.Position, end lexer.Position) {
 	node.GetExtra(ExtraStartPos, &start)
 	node.GetExtra(ExtraEndPos, &end)
 
@@ -48,14 +49,14 @@ func Pos(node ast.Node) (start Position, end Position) {
 // ErrorHandler .
 type ErrorHandler interface {
 	// handle
-	HandleParseError(err error, position Position, msg string)
+	HandleParseError(err error, position lexer.Position, msg string)
 }
 
 // HandleParseError .
-type HandleParseError func(err error, position Position, msg string)
+type HandleParseError func(err error, position lexer.Position, msg string)
 
 // HandleParseError implement ErrorHandler
-func (handle HandleParseError) HandleParseError(err error, position Position, msg string) {
+func (handle HandleParseError) HandleParseError(err error, position lexer.Position, msg string) {
 	handle(err, position, msg)
 }
 
@@ -87,7 +88,7 @@ func (compiler *Compiler) Compile(filepath string, errorHandler ErrorHandler) (e
 		return err
 	}
 
-	compiler.scripts[filepath] = compiler.parse(NewLexer(filepath, bytes.NewBuffer(content)), errorHandler)
+	compiler.scripts[filepath] = compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), errorHandler)
 
 	return
 }
