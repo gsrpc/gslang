@@ -48,19 +48,29 @@ func (parser *Parser) next() (token *lexer.Token) {
 }
 
 func (parser *Parser) errorf(position lexer.Position, fmtstring string, args ...interface{}) {
-	parser.errorHandler.HandleParseError(
-		ErrParser,
-		position,
-		fmt.Sprintf(fmtstring, args...),
-	)
+
+	errinfo := &Error{
+		Stage:   StageParing,
+		Orignal: ErrParser,
+		Start:   position,
+		End:     position,
+		Text:    fmt.Sprintf(fmtstring, args...),
+	}
+
+	parser.errorHandler.HandleError(errinfo)
 }
 
 func (parser *Parser) errorf2(err error, position lexer.Position, fmtstring string, args ...interface{}) {
-	parser.errorHandler.HandleParseError(
-		err,
-		position,
-		fmt.Sprintf(fmtstring, args...),
-	)
+
+	errinfo := &Error{
+		Stage:   StageParing,
+		Orignal: err,
+		Start:   position,
+		End:     position,
+		Text:    fmt.Sprintf(fmtstring, args...),
+	}
+
+	parser.errorHandler.HandleError(errinfo)
 }
 
 func (parser *Parser) expectf(expect lexer.TokenType, fmtstring string, args ...interface{}) *lexer.Token {

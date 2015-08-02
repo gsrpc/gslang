@@ -30,6 +30,34 @@ func NewScript(name string) *Script {
 	return script
 }
 
+// UsingForeach .
+func (script *Script) UsingForeach(f func(*Using)) {
+	for _, using := range script.using {
+		f(using)
+	}
+}
+
+// TableForeach .
+func (script *Script) TableForeach(f func(*Table)) {
+	for _, table := range script.tables {
+		f(table)
+	}
+}
+
+// ContractForeach .
+func (script *Script) ContractForeach(f func(*Contract)) {
+	for _, table := range script.contract {
+		f(table)
+	}
+}
+
+// EnumForeach .
+func (script *Script) EnumForeach(f func(*Enum)) {
+	for _, table := range script.enum {
+		f(table)
+	}
+}
+
 // Using .
 func (script *Script) Using(name string) *Using {
 	using := &Using{}

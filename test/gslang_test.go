@@ -42,13 +42,15 @@ func TestParser(t *testing.T) {
 
 	defer gslogger.Join()
 
-	compiler := gslang.NewCompiler()
-
-	err := compiler.Compile("test.gs", gslang.HandleParseError(func(err error, position lexer.Position, msg string) {
-		gserrors.Panicf(err, "parse %s error\n\t%s", position, msg)
+	compiler := gslang.NewCompiler(gslang.HandleError(func(err *gslang.Error) {
+		gserrors.Panicf(err.Orignal, "parse %s error\n\t%s", err.Start, err.Text)
 	}))
+
+	err := compiler.Compile("test.gs")
 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	compiler.Link()
 }

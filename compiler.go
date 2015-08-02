@@ -63,36 +63,56 @@ func Pos(node ast.Node) (start lexer.Position, end lexer.Position) {
 	return
 }
 
-// ErrorHandler .
-type ErrorHandler interface {
-	// handle
-	HandleParseError(err error, position lexer.Position, msg string)
+// Stage compile stage
+type Stage int
+
+// compile stages
+const (
+	StageLexer Stage = iota
+	StageParing
+	StageSemParing
+)
+
+// Error compile error context
+type Error struct {
+	Stage   Stage          // compile stage
+	Orignal error          // orignal error code
+	Start   lexer.Position // error location start
+	End     lexer.Position // error location end
+	Text    string         // error description
 }
 
-// HandleParseError .
-type HandleParseError func(err error, position lexer.Position, msg string)
+// ErrorHandler .
+type ErrorHandler interface {
+	HandleError(err *Error)
+}
 
-// HandleParseError implement ErrorHandler
-func (handle HandleParseError) HandleParseError(err error, position lexer.Position, msg string) {
-	handle(err, position, msg)
+// HandleError .
+type HandleError func(err *Error)
+
+// HandleError implement ErrorHandler
+func (handle HandleError) HandleError(err *Error) {
+	handle(err)
 }
 
 // Compiler gslang compiler
 type Compiler struct {
 	gslogger.Log                        // Mixin log
 	scripts      map[string]*ast.Script // compiled scripts
+	errorHandler ErrorHandler
 }
 
 // NewCompiler .
-func NewCompiler() *Compiler {
+func NewCompiler(errorHandler ErrorHandler) *Compiler {
 	return &Compiler{
-		Log:     gslogger.Get("compiler"),
-		scripts: make(map[string]*ast.Script),
+		Log:          gslogger.Get("compiler"),
+		scripts:      make(map[string]*ast.Script),
+		errorHandler: errorHandler,
 	}
 }
 
 // Compile .
-func (compiler *Compiler) Compile(filepath string, errorHandler ErrorHandler) (err error) {
+func (compiler *Compiler) Compile(filepath string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -105,7 +125,7 @@ func (compiler *Compiler) Compile(filepath string, errorHandler ErrorHandler) (e
 		return err
 	}
 
-	compiler.scripts[filepath] = compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), errorHandler)
+	compiler.scripts[filepath] = compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), compiler.errorHandler)
 
 	return
 }
