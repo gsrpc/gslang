@@ -53,6 +53,8 @@ const (
 	KeyPackage
 	KeyVoid
 	KeyThrows
+	KeyType
+	KeyMap
 	OpBitOr
 	OpBitAnd
 	OpPlus
@@ -86,6 +88,9 @@ var tokenName = map[TokenType]string{
 	KeyContract:     "contract",
 	KeyImport:       "using",
 	KeyPackage:      "package",
+	KeyVoid:         "void",
+	KeyType:         "type",
+	KeyMap:          "map",
 	OpBitOr:         "|",
 	OpBitAnd:        "&",
 	OpPlus:          "+",
@@ -113,6 +118,8 @@ var keyMap = map[string]TokenType{
 	"package":  KeyPackage,
 	"void":     KeyVoid,
 	"throws":   KeyThrows,
+	"type":     KeyType,
+	"map":      KeyMap,
 }
 
 //String implement fmt.Stringer interface

@@ -52,5 +52,11 @@ func TestParser(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = compiler.Compile("../gslang.gs")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	compiler.Link()
 }

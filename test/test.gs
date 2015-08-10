@@ -21,13 +21,20 @@ table RemoteException {
     Description Description;
 }
 
+table KV {
+    string Key;
+    string Value;
+}
+
+
+
 // HttpREST API
 contract HttpREST {
     @Async
     // invoke http post method
     void Post(@Out byte[] content) throws (RemoteException,CodeException);
     // get invoke http get method
-    byte[] Get() throws (RemoteException);
+    byte[] Get(KV[] properties) throws (RemoteException);
 }
 
 // remote exception
