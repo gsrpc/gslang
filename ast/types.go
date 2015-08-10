@@ -53,20 +53,23 @@ type Field struct {
 type Table struct {
 	_Node           // Mixin default node implement
 	Fields []*Field // table fields
+	Script *Script  // script belongs to
 }
 
 // NewTable .
-func (script *Script) NewTable(name string) (*Table, bool) {
+func (script *Script) NewTable(name string) (Type, bool) {
 
-	if table, ok := script.tables[name]; ok {
+	if table, ok := script.types[name]; ok {
 		return table, false
 	}
 
-	table := &Table{}
+	table := &Table{
+		Script: script,
+	}
 
 	table._init(name)
 
-	script.tables[name] = table
+	script.types[name] = table
 
 	return table, true
 }
@@ -156,8 +159,8 @@ type Enum struct {
 }
 
 // NewEnum .
-func (script *Script) NewEnum(name string) (*Enum, bool) {
-	if enum, ok := script.enum[name]; ok {
+func (script *Script) NewEnum(name string) (Type, bool) {
+	if enum, ok := script.types[name]; ok {
 		return enum, false
 	}
 
@@ -165,7 +168,7 @@ func (script *Script) NewEnum(name string) (*Enum, bool) {
 
 	enum._init(name)
 
-	script.enum[name] = enum
+	script.types[name] = enum
 
 	return enum, true
 }
@@ -208,9 +211,9 @@ type Contract struct {
 }
 
 // NewContract .
-func (script *Script) NewContract(name string) (*Contract, bool) {
+func (script *Script) NewContract(name string) (Type, bool) {
 
-	if contract, ok := script.contract[name]; ok {
+	if contract, ok := script.types[name]; ok {
 		return contract, false
 	}
 
@@ -218,7 +221,7 @@ func (script *Script) NewContract(name string) (*Contract, bool) {
 
 	contract._init(name)
 
-	script.contract[name] = contract
+	script.types[name] = contract
 
 	return contract, true
 }

@@ -180,7 +180,7 @@ func (parser *Parser) expectEnum(fmtstring string, args ...interface{}) *ast.Enu
 
 		name = constantName.Value.(string)
 
-		constant, ok := enum.NewConstant(name)
+		constant, ok := enum.(*ast.Enum).NewConstant(name)
 
 		if !ok {
 			parser.errorf(token.Start, "%s\n\tduplicate enum(%s) contract(%s) defined", msg, enum, name)
@@ -220,7 +220,7 @@ func (parser *Parser) expectEnum(fmtstring string, args ...interface{}) *ast.Enu
 
 	parser.attachComment(enum)
 
-	return enum
+	return enum.(*ast.Enum)
 
 }
 
@@ -245,7 +245,7 @@ func (parser *Parser) expectContract(fmtstring string, args ...interface{}) *ast
 		parser.errorf(token.Start, "%s\n\tduplicate contract(%s) defined", msg, name)
 	}
 
-	for parser.parseMethodDecl(contract) {
+	for parser.parseMethodDecl(contract.(*ast.Contract)) {
 	}
 
 	end := parser.expectf(lexer.TokenType('}'), "contract body must end with }").End
@@ -256,7 +256,7 @@ func (parser *Parser) expectContract(fmtstring string, args ...interface{}) *ast
 
 	parser.D("parse contract %s -- success", name)
 
-	return contract
+	return contract.(*ast.Contract)
 }
 
 func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Table {
@@ -281,7 +281,7 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 		parser.errorf(token.Start, "%s\n\tduplicate table(%s) defined", msg, name)
 	}
 
-	for parser.parseFieldDecl(table) {
+	for parser.parseFieldDecl(table.(*ast.Table)) {
 
 	}
 
@@ -293,7 +293,7 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 
 	parser.D("parse table %s -- success", name)
 
-	return table
+	return table.(*ast.Table)
 }
 
 func (parser *Parser) attachAnnotation(node ast.Node) {

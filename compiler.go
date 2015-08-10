@@ -97,17 +97,19 @@ func (handle HandleError) HandleError(err *Error) {
 
 // Compiler gslang compiler
 type Compiler struct {
-	gslogger.Log                        // Mixin log
-	scripts      map[string]*ast.Script // compiled scripts
-	errorHandler ErrorHandler
+	gslogger.Log                          // Mixin log
+	builtinMapping map[string]string      // builtin type fullname mapping
+	scripts        map[string]*ast.Script // compiled scripts
+	errorHandler   ErrorHandler
 }
 
 // NewCompiler .
 func NewCompiler(errorHandler ErrorHandler) *Compiler {
 	return &Compiler{
-		Log:          gslogger.Get("compiler"),
-		scripts:      make(map[string]*ast.Script),
-		errorHandler: errorHandler,
+		Log:            gslogger.Get("compiler"),
+		builtinMapping: make(map[string]string),
+		scripts:        make(map[string]*ast.Script),
+		errorHandler:   errorHandler,
 	}
 }
 

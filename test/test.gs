@@ -17,7 +17,9 @@ table Description {
 
 // remote exception
 @Exception
-table RemoteException {}
+table RemoteException {
+    Description Description;
+}
 
 // HttpREST API
 contract HttpREST {

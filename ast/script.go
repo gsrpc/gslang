@@ -8,21 +8,17 @@ type Using struct {
 // Script .
 type Script struct {
 	_Node
-	Package  string               // script's package name
-	using    map[string]*Using    // using instruction list
-	tables   map[string]*Table    // tables
-	contract map[string]*Contract // tables
-	enum     map[string]*Enum     // enums
+	Package string            // script's package name
+	using   map[string]*Using // using instruction list
+	types   map[string]Type   // tables
 }
 
 // NewScript .
 func NewScript(name string) *Script {
 
 	script := &Script{
-		using:    make(map[string]*Using),
-		tables:   make(map[string]*Table),
-		contract: make(map[string]*Contract),
-		enum:     make(map[string]*Enum),
+		using: make(map[string]*Using),
+		types: make(map[string]Type),
 	}
 
 	script._init(name)
@@ -37,24 +33,10 @@ func (script *Script) UsingForeach(f func(*Using)) {
 	}
 }
 
-// TableForeach .
-func (script *Script) TableForeach(f func(*Table)) {
-	for _, table := range script.tables {
-		f(table)
-	}
-}
-
-// ContractForeach .
-func (script *Script) ContractForeach(f func(*Contract)) {
-	for _, table := range script.contract {
-		f(table)
-	}
-}
-
-// EnumForeach .
-func (script *Script) EnumForeach(f func(*Enum)) {
-	for _, table := range script.enum {
-		f(table)
+// TypeForeach .
+func (script *Script) TypeForeach(f func(Type)) {
+	for _, gslangType := range script.types {
+		f(gslangType)
 	}
 }
 
@@ -67,4 +49,11 @@ func (script *Script) Using(name string) *Using {
 	script.using[name] = using
 
 	return using
+}
+
+// Type get type .
+func (script *Script) Type(name string) (Type, bool) {
+	gslangType, ok := script.types[name]
+
+	return gslangType, ok
 }
