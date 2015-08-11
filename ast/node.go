@@ -1,18 +1,15 @@
 package ast
 
-import (
-	"encoding/json"
-	"fmt"
-)
+import "fmt"
 
 // Node .
 type Node interface {
-	fmt.Stringer                               // Mixin Stringer
-	Name() string                              // node name
-	Parent() Node                              // parent node
-	SetParent(node Node) Node                  // set parent node
-	SetExtra(key string, val interface{})      // set extra data
-	GetExtra(key string, val interface{}) bool // get extra data
+	fmt.Stringer                             // Mixin Stringer
+	Name() string                            // node name
+	Parent() Node                            // parent node
+	SetParent(node Node) Node                // set parent node
+	SetExtra(key string, val interface{})    // set extra data
+	GetExtra(key string) (interface{}, bool) // get extra data
 }
 
 type _Node struct {
@@ -51,16 +48,8 @@ func (node *_Node) SetExtra(key string, val interface{}) {
 	node.extra[key] = val
 }
 
-func (node *_Node) GetExtra(key string, val interface{}) bool {
-	any, ok := node.extra[key]
+func (node *_Node) GetExtra(key string) (val interface{}, ok bool) {
+	val, ok = node.extra[key]
 
-	if !ok {
-		return false
-	}
-
-	content, _ := json.Marshal(any)
-
-	json.Unmarshal(content, val)
-
-	return true
+	return
 }

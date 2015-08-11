@@ -1,16 +1,17 @@
 package ast
 
-import "bytes"
-
 // Annotation .
 type Annotation struct {
-	_Node              // mixin _node
-	buff  bytes.Buffer // comment buff
+	_Node          // mixin _node
+	Type  *TypeRef // annotation type
+	Args  Expr     // annotation args
 }
 
 // NewAnnotation create new comment
 func NewAnnotation(name string) *Annotation {
-	annotation := &Annotation{}
+	annotation := &Annotation{
+		Type: NewTypeRef(name),
+	}
 
 	annotation._init(name)
 

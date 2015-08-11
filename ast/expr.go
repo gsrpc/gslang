@@ -76,6 +76,11 @@ func (args *ArgsTable) Args() int {
 	return len(args.args)
 }
 
+// GetArgs .
+func (args *ArgsTable) GetArgs() []Expr {
+	return args.args
+}
+
 // String literal string
 type String struct {
 	_Node // Mixin default node implement
@@ -140,14 +145,16 @@ func NewConstantRef(name string) *ConstantRef {
 
 // NewObj .
 type NewObj struct {
-	_Node // Mixin default node implement
-	Args  Expr
+	_Node          // Mixin default node implement
+	Type  *TypeRef // obj type reference
+	Args  Expr     // new initialize list
 }
 
 // NewNewObj .
 func NewNewObj(name string, args Expr) *NewObj {
 	lit := &NewObj{
 		Args: args,
+		Type: NewTypeRef(name),
 	}
 
 	lit._init(name)

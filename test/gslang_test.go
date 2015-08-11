@@ -58,5 +58,9 @@ func TestParser(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	compiler.Link()
+	err = compiler.Link()
+
+	if err != nil {
+		t.Fatal(err)
+	}
 }

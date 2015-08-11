@@ -94,7 +94,7 @@ var tokenName = map[TokenType]string{
 	OpBitOr:         "|",
 	OpBitAnd:        "&",
 	OpPlus:          "+",
-	OpSub:           "=",
+	OpSub:           "-",
 }
 
 var keyMap = map[string]TokenType{
@@ -358,7 +358,7 @@ func (lexer *Lexer) next() (token *Token, err error) {
 			if lexer.curr == '/' || lexer.curr == '*' {
 				token, err = lexer.scanComment(lexer.curr)
 			} else {
-				token = _NewToken(lexer.curr, nil)
+				token = _NewToken('/', nil)
 			}
 		}
 

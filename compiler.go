@@ -17,6 +17,10 @@ const (
 	ExtraAnnotation = "annotation"
 )
 
+var (
+	log = gslogger.Get("gslang")
+)
+
 func _setNodePos(node ast.Node, start lexer.Position, end lexer.Position) {
 	node.SetExtra(ExtraStartPos, start)
 	node.SetExtra(ExtraEndPos, end)
@@ -39,26 +43,40 @@ func _AttachComment(node ast.Node, comment *ast.Comment) bool {
 	return false
 }
 
-func _AttachAnnotation(node ast.Node, annotation []*ast.Annotation) {
+func _AttachAnnotation(node ast.Node, annotations []*ast.Annotation) {
 
 	anns := Annotation(node)
 
-	anns = append(anns, annotation...)
+	anns = append(anns, annotations...)
 
-	node.SetExtra(ExtraComment, anns)
+	node.SetExtra(ExtraAnnotation, anns)
 }
 
 // Annotation .
 func Annotation(node ast.Node) (anns []*ast.Annotation) {
-	node.GetExtra(ExtraAnnotation, &anns)
+
+	val, ok := node.GetExtra(ExtraAnnotation)
+
+	if ok {
+		anns = val.([]*ast.Annotation)
+	}
 
 	return
 }
 
 // Pos .
 func Pos(node ast.Node) (start lexer.Position, end lexer.Position) {
-	node.GetExtra(ExtraStartPos, &start)
-	node.GetExtra(ExtraEndPos, &end)
+	val, ok := node.GetExtra(ExtraStartPos)
+
+	if ok {
+		start = val.(lexer.Position)
+	}
+
+	val, ok = node.GetExtra(ExtraEndPos)
+
+	if ok {
+		end = val.(lexer.Position)
+	}
 
 	return
 }

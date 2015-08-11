@@ -196,10 +196,11 @@ func (enum *Enum) NewConstant(name string) (*EnumConstant, bool) {
 
 	if len(enum.Constants) == 0 {
 		constant.Value = 0
-		return constant, true
+	} else {
+		constant.Value = enum.Constants[len(enum.Constants)-1].Value + 1
 	}
 
-	constant.Value = enum.Constants[len(enum.Constants)-1].Value + 1
+	enum.Constants = append(enum.Constants, constant)
 
 	return constant, true
 }

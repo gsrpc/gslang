@@ -120,6 +120,10 @@ func (parser *Parser) parseType() bool {
 	case lexer.KeyEnum:
 		parser.expectEnum("expect enum type define")
 		return true
+	case lexer.TokenEOF:
+		return false
+	default:
+		parser.errorf(token.Start, "unexpect token\n%s", token)
 	}
 	return false
 }
@@ -602,6 +606,8 @@ func (parser *Parser) parseArgsTable() ast.Expr {
 
 			arg := parser.expectArg("expect label(%s) value", label)
 
+			parser.D("lable:%s", label)
+
 			namedArg := ast.NewNamedArg(label, arg)
 
 			_, end = Pos(arg)
@@ -628,6 +634,8 @@ func (parser *Parser) parseArgsTable() ast.Expr {
 			if parser.peek().Type != lexer.TokenType(',') {
 				break
 			}
+
+			parser.next()
 		}
 	}
 
@@ -666,6 +674,7 @@ func (parser *Parser) parseArg() ast.Expr {
 	case lexer.TokenINT, lexer.TokenFLOAT, lexer.TokenSTRING, lexer.TokenTrue, lexer.TokenFalse, lexer.TokenID:
 		return parser.expectExpr("expect arg expr")
 	case lexer.OpPlus:
+		parser.next()
 		numeric := parser.expectNumeric("unary op %s expect numeric object", lexer.OpPlus)
 
 		_, end := Pos(numeric)
@@ -674,6 +683,7 @@ func (parser *Parser) parseArg() ast.Expr {
 
 		return numeric
 	case lexer.OpSub:
+		parser.next()
 		numeric := parser.expectNumeric("unary op %s expect numeric object", lexer.OpSub)
 
 		numeric.Val = -numeric.Val
@@ -792,6 +802,8 @@ func (parser *Parser) expectNumeric(fmtStr string, args ...interface{}) (number 
 	for {
 		token := parser.next()
 
+		parser.D("expect numeric :%s", token)
+
 		if token.Type == lexer.TokenINT {
 			number = ast.NewNumeric(float64(token.Value.(int64)))
 		} else if token.Type == lexer.TokenFLOAT {
@@ -869,6 +881,8 @@ func (parser *Parser) parseAnnotation() bool {
 		args := parser.expectArgsTable("expect annotation arg table")
 
 		_, end = Pos(args)
+
+		annotation.Args = args
 	}
 
 	_setNodePos(annotation, start, end)
@@ -894,7 +908,11 @@ func (parser *Parser) parseComment() bool {
 
 		var pos lexer.Position
 
-		comment.GetExtra("end", &pos)
+		val, ok := comment.GetExtra("end")
+
+		if ok {
+			pos = val.(lexer.Position)
+		}
 
 		if pos.Lines+1 == token.Start.Lines {
 			comment.SetExtra("end", token.End)
@@ -957,6 +975,8 @@ func (parser *Parser) parseImport() bool {
 	using := parser.script.Using(usingNamePath)
 
 	parser.expectf(lexer.TokenType(';'), "import name path must end with ';'")
+
+	parser.D("parse using :%s", using)
 
 	_setNodePos(using, start, end)
 
