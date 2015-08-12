@@ -1,7 +1,7 @@
 package gslang.test;
 
-using gslang.AttrUsage; // tail comment
-/*same line comment*/using gslang.AttrTarget;
+using gslang.annotations.Usage; // tail comment
+/*same line comment*/using gslang.annotations.Target;
 // header line comment
 using gslang.Exception;
 using gslang.Flag;
@@ -10,7 +10,7 @@ using gslang.TimeUnit;
 
 
 // Description define new Attribute
-@AttrUsage(AttrTarget.Package|AttrTarget.Script)
+@Usage(Target.Package|Target.Script)
 table Description {
     string Text; // Description text
     //long texts
@@ -18,15 +18,15 @@ table Description {
 }
 
 
-@AttrUsage(AttrTarget.Method)
+@Usage(Target.Method)
 table Async {
 }
 
-@AttrUsage(AttrTarget.Param)
+@Usage(Target.Param)
 table Out {
 }
 
-@AttrUsage(AttrTarget.Method)
+@Usage(Target.Method)
 table Timeout {
     Duration Duration;
 }

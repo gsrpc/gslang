@@ -9,6 +9,7 @@ import (
 // Type .
 type Type interface {
 	Node
+	FullName() string
 }
 
 // TypeRef .
@@ -26,6 +27,15 @@ func NewTypeRef(name string) *TypeRef {
 	return typeRef
 }
 
+// FullName .
+func (ref *TypeRef) FullName() string {
+	if ref.Ref != nil {
+		return "ref :" + ref.Ref.FullName()
+	}
+
+	return "unlink ref :" + ref.Name()
+}
+
 // BuiltinType .
 type BuiltinType struct {
 	_Node
@@ -41,6 +51,11 @@ func NewBuiltinType(builtin lexer.TokenType) *BuiltinType {
 	builtinType._init(builtin.String())
 
 	return builtinType
+}
+
+// FullName .
+func (builtin *BuiltinType) FullName() string {
+	return builtin.Name()
 }
 
 // Field .
@@ -72,6 +87,11 @@ func (script *Script) NewTable(name string) (Type, bool) {
 	script.types[name] = table
 
 	return table, true
+}
+
+// FullName .
+func (table *Table) FullName() string {
+	return table.Script.Package + "." + table.Name()
 }
 
 // Field .
@@ -156,6 +176,7 @@ type EnumConstant struct {
 type Enum struct {
 	_Node                     // Mixin default node implement
 	Constants []*EnumConstant // table fields
+	script    *Script
 }
 
 // NewEnum .
@@ -164,13 +185,20 @@ func (script *Script) NewEnum(name string) (Type, bool) {
 		return enum, false
 	}
 
-	enum := &Enum{}
+	enum := &Enum{
+		script: script,
+	}
 
 	enum._init(name)
 
 	script.types[name] = enum
 
 	return enum, true
+}
+
+// FullName .
+func (enum *Enum) FullName() string {
+	return enum.script.Package + "." + enum.Name()
 }
 
 // Constant .
@@ -209,6 +237,7 @@ func (enum *Enum) NewConstant(name string) (*EnumConstant, bool) {
 type Contract struct {
 	_Node             // Mixin default node implement
 	Methods []*Method // table fields
+	script  *Script
 }
 
 // NewContract .
@@ -218,13 +247,20 @@ func (script *Script) NewContract(name string) (Type, bool) {
 		return contract, false
 	}
 
-	contract := &Contract{}
+	contract := &Contract{
+		script: script,
+	}
 
 	contract._init(name)
 
 	script.types[name] = contract
 
 	return contract, true
+}
+
+// FullName .
+func (contract *Contract) FullName() string {
+	return contract.script.Package + "." + contract.Name()
 }
 
 // Method .
@@ -267,7 +303,17 @@ func NewSeq(component Type, size int) *Seq {
 		Size:      size,
 	}
 
-	seq._init(fmt.Sprintf("seq<%s>(%d)", component, size))
+	seq._init(fmt.Sprintf("%s[%d]", component, size))
 
 	return seq
+}
+
+// FullName .
+func (seq *Seq) FullName() string {
+
+	if seq.Size > 0 {
+		return fmt.Sprintf("%s[%d]", seq.Component.FullName(), seq.Size)
+	}
+
+	return fmt.Sprintf("%s[]", seq.Component.FullName())
 }

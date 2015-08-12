@@ -14,7 +14,7 @@
     "properties":{
 
         "gsmake.golang.test" :[
-            {"dir":"./test","flags":"-bench . -cpu 4"}
+            {"dir":"./test"}
         ]
     }
 }

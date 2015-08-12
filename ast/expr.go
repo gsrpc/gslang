@@ -71,13 +71,13 @@ func (args *ArgsTable) Arg(index int) Expr {
 	return args.args[index]
 }
 
-// Args .
-func (args *ArgsTable) Args() int {
+// Count .
+func (args *ArgsTable) Count() int {
 	return len(args.args)
 }
 
-// GetArgs .
-func (args *ArgsTable) GetArgs() []Expr {
+// Args .
+func (args *ArgsTable) Args() []Expr {
 	return args.args
 }
 
@@ -145,19 +145,31 @@ func NewConstantRef(name string) *ConstantRef {
 
 // NewObj .
 type NewObj struct {
-	_Node          // Mixin default node implement
-	Type  *TypeRef // obj type reference
-	Args  Expr     // new initialize list
+	_Node            // Mixin default node implement
+	Type  *TypeRef   // obj type reference
+	Args  *ArgsTable // new initialize list
 }
 
 // NewNewObj .
-func NewNewObj(name string, args Expr) *NewObj {
+func NewNewObj(name string, args *ArgsTable) *NewObj {
 	lit := &NewObj{
 		Args: args,
 		Type: NewTypeRef(name),
 	}
 
 	lit._init(name)
+
+	return lit
+}
+
+// NewNewObj2 .
+func NewNewObj2(ref *TypeRef, args *ArgsTable) *NewObj {
+	lit := &NewObj{
+		Args: args,
+		Type: ref,
+	}
+
+	lit._init(ref.Name())
 
 	return lit
 }

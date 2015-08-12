@@ -24,7 +24,7 @@ func (compiler *Compiler) parse(lexer *lexer.Lexer, errorHandler ErrorHandler) *
 	return (&Parser{
 		Log:          gslogger.Get("parser"),
 		lexer:        lexer,
-		script:       ast.NewScript(lexer.String()),
+		script:       compiler.module.NewScript(lexer.String()),
 		errorHandler: errorHandler,
 	}).parse()
 }
@@ -99,6 +99,10 @@ func (parser *Parser) parse() *ast.Script {
 	for parser.parseType() {
 
 	}
+
+	parser.attachComment(parser.script)
+
+	parser.attachAnnotation(parser.script)
 
 	return parser.script
 }
@@ -549,7 +553,7 @@ func (parser *Parser) parseSeq(component ast.Type) (typeDecl ast.Type, ok bool) 
 	return
 }
 
-func (parser *Parser) expectArgsTable(fmtstring string, args ...interface{}) (expr ast.Expr) {
+func (parser *Parser) expectArgsTable(fmtstring string, args ...interface{}) (expr *ast.ArgsTable) {
 
 	msg := fmt.Sprintf(fmtstring, args...)
 
@@ -569,7 +573,7 @@ func (parser *Parser) expectArgsTable(fmtstring string, args ...interface{}) (ex
 	}
 }
 
-func (parser *Parser) parseArgsTable() ast.Expr {
+func (parser *Parser) parseArgsTable() *ast.ArgsTable {
 
 	token := parser.peek()
 

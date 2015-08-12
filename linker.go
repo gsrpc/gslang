@@ -3,7 +3,6 @@ package gslang
 import (
 	"fmt"
 	"path"
-	"reflect"
 	"strings"
 
 	"github.com/gsdocker/gserrors"
@@ -12,15 +11,16 @@ import (
 )
 
 type _Linker struct {
-	gslogger.Log                       //Mixin logger
-	builtinMapping map[string]string   // builtin types fullname mapping
-	types          map[string]ast.Type // defined types
-	importTypes    map[string]ast.Type // defined types
-	errorHandler   ErrorHandler        // error handler
+	gslogger.Log                     //Mixin logger
+	types        map[string]ast.Type // defined types
+	importTypes  map[string]ast.Type // defined types
+	errorHandler ErrorHandler        // error handler
+	linkdepth    int                 // link depth
+	compiler     *Compiler           // compiler
 }
 
 // Link do sematic paring and type link
-func (complier *Compiler) Link() (err error) {
+func (compiler *Compiler) Link() (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -29,25 +29,43 @@ func (complier *Compiler) Link() (err error) {
 	}()
 
 	linker := &_Linker{
-		Log:            gslogger.Get("linker"),
-		types:          make(map[string]ast.Type),
-		builtinMapping: complier.builtinMapping,
-		errorHandler:   complier.errorHandler,
+		Log:          gslogger.Get("linker"),
+		types:        make(map[string]ast.Type),
+		errorHandler: compiler.errorHandler,
+		compiler:     compiler,
 	}
 
-	for _, script := range complier.scripts {
+	compiler.module.Foreach(func(script *ast.Script) bool {
 		linker.createSymbolTable(script)
-	}
+		return true
+	})
 
-	for _, script := range complier.scripts {
+	compiler.module.Types = linker.types
+
+	compiler.module.Foreach(func(script *ast.Script) bool {
 		linker.linkTypes(script)
-	}
+		return true
+	})
+
+	compiler.module.Foreach(func(script *ast.Script) bool {
+
+		script.TypeForeach(func(gslangType ast.Type) {
+
+			linker.moveTypeAnnotation(script, gslangType)
+		})
+
+		return true
+	})
 
 	return
 }
 
 func _fullName(namespace string, node ast.Type) string {
 	return fmt.Sprintf("%s.%s", namespace, node)
+}
+
+func (linker *_Linker) Eval() Eval {
+	return linker.compiler.Eval()
 }
 
 func (linker *_Linker) duplicateTypeDef(lhs ast.Type, rhs ast.Type) {
@@ -65,34 +83,35 @@ func (linker *_Linker) duplicateTypeDef(lhs ast.Type, rhs ast.Type) {
 	linker.errorHandler.HandleError(errinfo)
 }
 
-func (linker *_Linker) unknownTypeRef(node ast.Node, fullname string) {
-
+func (linker *_Linker) errorf(err error, node ast.Node, fmtstr string, args ...interface{}) {
 	start, end := Pos(node)
 
 	errinfo := &Error{
 		Stage:   StageSemParing,
-		Orignal: ErrTypeNotFound,
+		Orignal: err,
 		Start:   start,
 		End:     end,
-		Text:    fmt.Sprintf("unknown type reference :%s", fullname),
+		Text:    fmt.Sprintf(fmtstr, args...),
 	}
 
 	linker.errorHandler.HandleError(errinfo)
 }
 
-func (linker *_Linker) unknownConstant(node ast.Node, constantType ast.Type, name string) {
+func (linker *_Linker) startLinkNode(node ast.Node) {
 
-	start, end := Pos(node)
+	linker.D("<link %s>", node)
 
-	errinfo := &Error{
-		Stage:   StageSemParing,
-		Orignal: ErrTypeNotFound,
-		Start:   start,
-		End:     end,
-		Text:    fmt.Sprintf("unknown constant(%s.%s)", constantType, name),
-	}
+	linker.linkdepth++
+}
 
-	linker.errorHandler.HandleError(errinfo)
+func (linker *_Linker) endLinkNode(node ast.Node) {
+	linker.linkdepth--
+
+	linker.D("</link %s>", node)
+}
+
+func (linker *_Linker) D(fmtstr string, args ...interface{}) {
+	linker.Log.D("%s%s", strings.Repeat(" ", linker.linkdepth*2), fmt.Sprintf(fmtstr, args...))
 }
 
 func (linker *_Linker) linkTypes(script *ast.Script) {
@@ -112,7 +131,7 @@ func (linker *_Linker) linkTypes(script *ast.Script) {
 			return
 		}
 
-		linker.unknownTypeRef(using, using.Name())
+		linker.errorf(ErrTypeNotFound, using, "using statment reference unknown type(%s)", using.Name())
 	})
 
 	linker.D("create using symbol table for script : %s -- success", script)
@@ -123,27 +142,63 @@ func (linker *_Linker) linkTypes(script *ast.Script) {
 	})
 }
 
+func (linker *_Linker) linkTypeAnnotation(script *ast.Script, typeDecl ast.Type) {
+	for _, annotation := range Annotations(typeDecl) {
+		linker.linkAnnotation(script, annotation)
+	}
+}
+
+func (linker *_Linker) moveTypeAnnotation(script *ast.Script, typeDecl ast.Type) {
+	for _, annotation := range Annotations(typeDecl) {
+
+		if annotation.Type.Ref == nil {
+			continue
+		}
+
+		usage, ok := FindAnnotation(annotation.Type.Ref, "gslang.annotations.Usage")
+
+		if !ok {
+			linker.errorf(ErrAnnotation, annotation, "illegal annotation type : table(%s) must be annotation by gslang.annotations.Usage", annotation.Type.Ref.FullName())
+		}
+
+		if usage.Args.Count() != 1 {
+			continue
+		}
+
+		linker.Eval().EvalInt(usage.Args.Arg(0))
+
+		target,ok := linker.Eval().GetType("gslang.annotations.Target")
+
+		if ok {
+			linker.D("find target :%s",target.FullName())
+		}
+	}
+}
+
 func (linker *_Linker) linkType(script *ast.Script, gslangType ast.Type) {
 
-	linker.D("link type(%s) :%s", gslangType, reflect.TypeOf(gslangType))
+	linker.startLinkNode(gslangType)
 
 	switch gslangType.(type) {
 	case *ast.Table:
+		linker.linkTypeAnnotation(script, gslangType)
 		linker.linkTable(script, gslangType.(*ast.Table))
 	case *ast.Contract:
+		linker.linkTypeAnnotation(script, gslangType)
 		linker.linkContract(script, gslangType.(*ast.Contract))
 	case *ast.Enum:
+		linker.linkTypeAnnotation(script, gslangType)
 		linker.linkEnum(script, gslangType.(*ast.Enum))
 	case *ast.TypeRef:
 		linker.linkTypeRef(script, gslangType.(*ast.TypeRef))
 	case *ast.Seq:
 		linker.linkType(script, gslangType.(*ast.Seq).Component)
 	}
+
+	linker.endLinkNode(gslangType)
 }
 
 func (linker *_Linker) linkTypeRef(script *ast.Script, typeRef *ast.TypeRef) {
-
-	linker.D("try link type reference :%s", typeRef)
 
 	linkedType, ok := script.Type(typeRef.Name())
 
@@ -165,14 +220,14 @@ func (linker *_Linker) linkTypeRef(script *ast.Script, typeRef *ast.TypeRef) {
 		return
 	}
 
-	linker.unknownTypeRef(typeRef, typeRef.Name())
+	linker.errorf(ErrTypeNotFound, typeRef, "unknown type reference :%s", typeRef)
 }
 
 func (linker *_Linker) linkExpr(script *ast.Script, expr ast.Expr) {
 
 	gserrors.Assert(expr != nil, "input arg expr can't be nil")
 
-	linker.D("link expr(%s) :%s", expr, reflect.TypeOf(expr))
+	linker.startLinkNode(expr)
 
 	switch expr.(type) {
 	case *ast.ArgsTable:
@@ -189,64 +244,88 @@ func (linker *_Linker) linkExpr(script *ast.Script, expr ast.Expr) {
 		linker.linkBinaryOp(script, expr.(*ast.BinaryOp))
 	}
 
-	linker.D("link expr(%s) :%s -- success", expr, reflect.TypeOf(expr))
+	linker.endLinkNode(expr)
 }
 
 func (linker *_Linker) linkUnaryOp(script *ast.Script, unary *ast.UnaryOp) {
-	linker.D("link binary op %s%s", unary, unary.Operand)
 
 	linker.linkExpr(script, unary.Operand)
-
-	linker.D("link binary op %s%s", unary, unary.Operand)
 }
 
 func (linker *_Linker) linkBinaryOp(script *ast.Script, binary *ast.BinaryOp) {
 
-	linker.D("link binary op %s%s%s", binary.LHS, binary, binary.RHS)
-
 	linker.linkExpr(script, binary.LHS)
 
 	linker.linkExpr(script, binary.RHS)
-
-	linker.D("link binary op %s%s%s -- success", binary.LHS, binary, binary.RHS)
 }
 
 func (linker *_Linker) linkNewObj(script *ast.Script, newObj *ast.NewObj) {
-	linker.D("link newobj(%s)", newObj)
 	linker.linkType(script, newObj.Type)
 
 	if newObj.Args != nil {
 		linker.linkExpr(script, newObj.Args)
+
+		if newObj.Type.Ref != nil {
+			switch newObj.Type.Ref.(type) {
+			case *ast.Table:
+				linker.linkTableNewObj(script, newObj.Type.Ref.(*ast.Table), newObj.Args)
+			}
+		}
+	}
+}
+
+func (linker *_Linker) linkTableNewObj(script *ast.Script, table *ast.Table, args *ast.ArgsTable) {
+	if args.Named {
+
+		for _, arg := range args.Args() {
+
+			namedArg := arg.(*ast.NamedArg)
+
+			_, ok := table.Field(namedArg.Name())
+
+			if !ok {
+				linker.errorf(ErrFieldName, arg, "unknown table(%s) field(%s)", table, namedArg)
+			}
+
+			//TODO : check if field type match the arg expr
+		}
+
+		return
 	}
 
-	linker.D("link newobj(%s) -- success", newObj)
+	if len(table.Fields) != args.Count() {
+		linker.errorf(ErrNewObj, args, "wrong newobj args num for table(%s) : expect %d but got %d", table, len(table.Fields), args.Count())
+
+		//TODO : check if field type match the arg expr
+	}
 }
 
 func (linker *_Linker) linkArgsTable(script *ast.Script, argsTable *ast.ArgsTable) {
-	for _, arg := range argsTable.GetArgs() {
+	for _, arg := range argsTable.Args() {
 		linker.linkExpr(script, arg)
 	}
 }
 
 func (linker *_Linker) linkNameArg(script *ast.Script, namedArg *ast.NamedArg) {
-	linker.D("link name arg(%s)", namedArg)
 	linker.linkExpr(script, namedArg.Arg)
-	linker.D("link name arg(%s) -- success", namedArg)
 }
 
 func (linker *_Linker) linkConstantRef(script *ast.Script, constantRef *ast.ConstantRef) {
-	linker.D("link constant reference(%s)", constantRef)
 
 	nodes := strings.Split(constantRef.Name(), ".")
 
-	if len(nodes) == 0 {
-		linker.unknownTypeRef(constantRef, constantRef.Name())
+	if len(nodes) < 2 {
+		linker.errorf(ErrTypeNotFound, constantRef, "unknown constant val (%s)", constantRef.Name())
 		return
 	}
 
 	name := nodes[len(nodes)-1]
 
 	typeRef := ast.NewTypeRef(strings.Join(nodes[0:len(nodes)-1], "."))
+
+	start, end := Pos(constantRef)
+
+	_setNodePos(typeRef, start, end)
 
 	linker.linkTypeRef(script, typeRef)
 
@@ -256,92 +335,45 @@ func (linker *_Linker) linkConstantRef(script *ast.Script, constantRef *ast.Cons
 		for _, constant := range enum.Constants {
 
 			if constant.Name() == name {
-				linker.D("link constant reference(%s) -- success", constantRef)
 				return
 			}
 		}
 
-		linker.unknownConstant(constantRef, typeRef.Ref, name)
+		linker.errorf(ErrVariableName, constantRef, "unknown enum(%s) constant filed :%s", enum, name)
 	}
 
 }
 
 func (linker *_Linker) linkAnnotation(script *ast.Script, annotation *ast.Annotation) {
-
-	linker.D("link annotation(%s)", annotation)
-
-	linker.linkNewObj(script, ast.NewNewObj(annotation.Type.Name(), annotation.Args))
-
-	linker.D("link annotation(%s) -- success", annotation)
+	linker.linkNewObj(script, ast.NewNewObj2(annotation.Type, annotation.Args))
 }
 
 func (linker *_Linker) linkEnum(script *ast.Script, enum *ast.Enum) {
-	linker.D("link enum(%s)", enum)
 
-	for _, annotation := range Annotation(enum) {
-		linker.linkAnnotation(script, annotation)
-	}
-
-	linker.D("link enum(%s) -- success", enum)
 }
 
 func (linker *_Linker) linkContract(script *ast.Script, contract *ast.Contract) {
 
-	linker.D("link contract(%s)", contract)
-
-	for _, annotation := range Annotation(contract) {
-
-		linker.D("link contract(%s) annotation(%s)", contract, annotation)
-
-		linker.linkAnnotation(script, annotation)
-
-		linker.D("link contract(%s) annotation(%s) -- sucess", contract, annotation)
-	}
-
 	for _, method := range contract.Methods {
-		for _, annotation := range Annotation(method) {
-
-			linker.D("link method(%s) annotation(%s)", method, annotation)
-
+		for _, annotation := range Annotations(method) {
 			linker.linkAnnotation(script, annotation)
-
-			linker.D("link method(%s) annotation(%s) -- sucess", method, annotation)
 		}
 
-		linker.D("link method(%s) return type(%s)", method, method.Return)
 		linker.linkType(script, method.Return)
-		linker.D("link method(%s) return type(%s) -- success", method, method.Return)
 
 		for _, param := range method.Params {
 
-			for _, annotation := range Annotation(param) {
-
-				linker.D("link method(%s) param(%s) annotation(%s)", method, param, annotation)
+			for _, annotation := range Annotations(param) {
 
 				linker.linkAnnotation(script, annotation)
-
-				linker.D("link method(%s) param(%s) annotation(%s) -- sucess", method, param, annotation)
 			}
 
-			linker.D("link method(%s) param type(%s)", method, param)
 			linker.linkType(script, param.Type)
-			linker.D("link method(%s) param type(%s) -- success", method, param.Type)
 		}
 	}
-
-	linker.D("link contract(%s) -- success", contract)
 }
 
 func (linker *_Linker) linkTable(script *ast.Script, table *ast.Table) {
-
-	for _, annotation := range Annotation(table) {
-
-		linker.D("link table(%s) annotation(%s)", table, annotation)
-
-		linker.linkAnnotation(script, annotation)
-
-		linker.D("link table(%s) annotation(%s) -- sucess", table, annotation)
-	}
 
 	for _, field := range table.Fields {
 		linker.linkType(script, field.Type)
@@ -362,4 +394,6 @@ func (linker *_Linker) createSymbolTable(script *ast.Script) {
 
 		linker.types[fullname] = gslangType
 	})
+
+	linker.D("create global symoble table , search script defined types: %s -- success", script)
 }

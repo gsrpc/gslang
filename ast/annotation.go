@@ -2,9 +2,9 @@ package ast
 
 // Annotation .
 type Annotation struct {
-	_Node          // mixin _node
-	Type  *TypeRef // annotation type
-	Args  Expr     // annotation args
+	_Node            // mixin _node
+	Type  *TypeRef   // annotation type
+	Args  *ArgsTable // annotation args
 }
 
 // NewAnnotation create new comment

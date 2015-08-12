@@ -17,9 +17,6 @@ const (
 	ExtraAnnotation = "annotation"
 )
 
-var (
-	log = gslogger.Get("gslang")
-)
 
 func _setNodePos(node ast.Node, start lexer.Position, end lexer.Position) {
 	node.SetExtra(ExtraStartPos, start)
@@ -45,15 +42,15 @@ func _AttachComment(node ast.Node, comment *ast.Comment) bool {
 
 func _AttachAnnotation(node ast.Node, annotations []*ast.Annotation) {
 
-	anns := Annotation(node)
+	anns := Annotations(node)
 
 	anns = append(anns, annotations...)
 
 	node.SetExtra(ExtraAnnotation, anns)
 }
 
-// Annotation .
-func Annotation(node ast.Node) (anns []*ast.Annotation) {
+// Annotations .
+func Annotations(node ast.Node) (anns []*ast.Annotation) {
 
 	val, ok := node.GetExtra(ExtraAnnotation)
 
@@ -62,6 +59,29 @@ func Annotation(node ast.Node) (anns []*ast.Annotation) {
 	}
 
 	return
+}
+
+// FindAnnotation .
+func FindAnnotation(node ast.Node, name string) (*ast.Annotation, bool) {
+
+	val, ok := node.GetExtra(ExtraAnnotation)
+
+	if ok {
+		anns := val.([]*ast.Annotation)
+
+		for _, ann := range anns {
+
+			if ann.Type.Ref == nil {
+				continue
+			}
+
+			if ann.Type.Ref.FullName() == name {
+				return ann, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 // Pos .
@@ -115,20 +135,29 @@ func (handle HandleError) HandleError(err *Error) {
 
 // Compiler gslang compiler
 type Compiler struct {
-	gslogger.Log                          // Mixin log
-	builtinMapping map[string]string      // builtin type fullname mapping
-	scripts        map[string]*ast.Script // compiled scripts
-	errorHandler   ErrorHandler
+	gslogger.Log              // Mixin log
+	module       *ast.Module  // compiled scripts
+	errorHandler ErrorHandler // error handler
+	eval         Eval         //eval site
 }
 
 // NewCompiler .
-func NewCompiler(errorHandler ErrorHandler) *Compiler {
+func NewCompiler(name string, errorHandler ErrorHandler) *Compiler {
+
+	module := ast.NewModule(name)
+
 	return &Compiler{
-		Log:            gslogger.Get("compiler"),
-		builtinMapping: make(map[string]string),
-		scripts:        make(map[string]*ast.Script),
-		errorHandler:   errorHandler,
+		Log:          gslogger.Get("compiler"),
+		module:       module,
+		errorHandler: errorHandler,
+		eval:         newEval(module),
 	}
+
+}
+
+// Eval .
+func (compiler *Compiler) Eval() Eval {
+	return compiler.eval
 }
 
 // Compile .
@@ -145,7 +174,7 @@ func (compiler *Compiler) Compile(filepath string) (err error) {
 		return err
 	}
 
-	compiler.scripts[filepath] = compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), compiler.errorHandler)
+	compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), compiler.errorHandler)
 
 	return
 }

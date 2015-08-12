@@ -1,22 +1,15 @@
 package gslang;
 
-// attribute target flag
-enum AttrTarget{
-    Package,Script,Table,Method,Param,Enum
-}
-
-// attribute Usage attribute
-@AttrUsage(AttrTarget.Table)
-table AttrUsage{
-}
+using gslang.annotations.Target;
+using gslang.annotations.Usage;
 
 // gslang exception attribute
-@AttrUsage(AttrTarget.Table)
+@Usage(Target.Table)
 table Exception{
 }
 
 
-@AttrUsage(AttrTarget.Enum)
+@Usage(Target.Enum)
 table Flag{
 }
 

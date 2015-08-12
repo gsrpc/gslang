@@ -1,15 +1,15 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"testing"
+	"io/ioutil"
+	"bytes"
 
+	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang"
 	"github.com/gsdocker/gslang/lexer"
-	"github.com/gsdocker/gslogger"
 )
 
 func TestToken(t *testing.T) {
@@ -42,7 +42,7 @@ func TestParser(t *testing.T) {
 
 	defer gslogger.Join()
 
-	compiler := gslang.NewCompiler(gslang.HandleError(func(err *gslang.Error) {
+	compiler := gslang.NewCompiler("test", gslang.HandleError(func(err *gslang.Error) {
 		gserrors.Panicf(err.Orignal, "parse %s error\n\t%s", err.Start, err.Text)
 	}))
 
@@ -53,6 +53,12 @@ func TestParser(t *testing.T) {
 	}
 
 	err = compiler.Compile("../gslang.gs")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = compiler.Compile("../gslang.annotations.gs")
 
 	if err != nil {
 		t.Fatal(err)

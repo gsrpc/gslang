@@ -9,4 +9,12 @@ var (
 	ErrDuplicateType = errors.New("duplicate type defined")
 
 	ErrTypeNotFound = errors.New("not found type")
+
+	ErrFieldName = errors.New("unknown table field name")
+
+	ErrVariableName = errors.New("unknown variable name")
+
+	ErrNewObj = errors.New("newobj ir error")
+
+	ErrAnnotation = errors.New("illegal annotation type")
 )

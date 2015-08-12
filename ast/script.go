@@ -14,7 +14,7 @@ type Script struct {
 }
 
 // NewScript .
-func NewScript(name string) *Script {
+func (module *Module) NewScript(name string) *Script {
 
 	script := &Script{
 		using: make(map[string]*Using),
@@ -22,6 +22,8 @@ func NewScript(name string) *Script {
 	}
 
 	script._init(name)
+
+	module.scripts[name] = script
 
 	return script
 }
