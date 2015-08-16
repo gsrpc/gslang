@@ -10,6 +10,7 @@ import (
 type Type interface {
 	Node
 	FullName() string
+	Package() string
 }
 
 // TypeRef .
@@ -36,6 +37,11 @@ func (ref *TypeRef) FullName() string {
 	return "unlink ref :" + ref.Name()
 }
 
+// Package .
+func (ref *TypeRef) Package() string {
+	return ""
+}
+
 // BuiltinType .
 type BuiltinType struct {
 	_Node
@@ -56,6 +62,11 @@ func NewBuiltinType(builtin lexer.TokenType) *BuiltinType {
 // FullName .
 func (builtin *BuiltinType) FullName() string {
 	return builtin.Name()
+}
+
+// Package .
+func (builtin *BuiltinType) Package() string {
+	return ""
 }
 
 // Field .
@@ -92,6 +103,11 @@ func (script *Script) NewTable(name string) (Type, bool) {
 // FullName .
 func (table *Table) FullName() string {
 	return table.Script.Package + "." + table.Name()
+}
+
+// Package .
+func (table *Table) Package() string {
+	return table.Script.Package
 }
 
 // Field .
@@ -196,6 +212,11 @@ func (script *Script) NewEnum(name string) (Type, bool) {
 	return enum, true
 }
 
+// Package .
+func (enum *Enum) Package() string {
+	return enum.script.Package
+}
+
 // FullName .
 func (enum *Enum) FullName() string {
 	return enum.script.Package + "." + enum.Name()
@@ -258,6 +279,11 @@ func (script *Script) NewContract(name string) (Type, bool) {
 	return contract, true
 }
 
+// Package .
+func (contract *Contract) Package() string {
+	return contract.script.Package
+}
+
 // FullName .
 func (contract *Contract) FullName() string {
 	return contract.script.Package + "." + contract.Name()
@@ -316,4 +342,9 @@ func (seq *Seq) FullName() string {
 	}
 
 	return fmt.Sprintf("%s[]", seq.Component.FullName())
+}
+
+// Package .
+func (seq *Seq) Package() string {
+	return "gslang"
 }

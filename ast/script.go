@@ -2,7 +2,8 @@ package ast
 
 // Using instruction
 type Using struct {
-	_Node // mixin _Node
+	_Node      // mixin _Node
+	Ref   Type // type reference
 }
 
 // Script .

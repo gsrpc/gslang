@@ -127,7 +127,8 @@ func (linker *_Linker) linkTypes(script *ast.Script) {
 
 		if gslangType, ok := linker.types[using.Name()]; ok {
 			linker.importTypes[name] = gslangType
-			linker.D("link using(%s) : %s -- success", using, name)
+			using.Ref = gslangType
+			linker.D("link using(%s:%p) : %s -- success", using, using, name)
 			return
 		}
 
@@ -167,10 +168,10 @@ func (linker *_Linker) moveTypeAnnotation(script *ast.Script, typeDecl ast.Type)
 
 		linker.Eval().EvalInt(usage.Args.Arg(0))
 
-		target,ok := linker.Eval().GetType("gslang.annotations.Target")
+		target, ok := linker.Eval().GetType("gslang.annotations.Target")
 
 		if ok {
-			linker.D("find target :%s",target.FullName())
+			linker.D("find target :%s", target.FullName())
 		}
 	}
 }

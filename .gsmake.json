@@ -1,7 +1,7 @@
 {
     "name":"github.com/gsdocker/gslang",
 
-    "domain":"gslang|golang",
+    "domain":"task|gslang|golang",
 
     "import" : [
         {"name" : "github.com/gsdocker/gsos","domain":"task|golang","version":"v2.0"},
