@@ -7,6 +7,7 @@ import (
 
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang/ast"
+	"github.com/gsdocker/gslang/lexer"
 )
 
 // CodeBuilder .
@@ -21,21 +22,42 @@ type CodeBuilder interface {
 
 // _CodeBuilder .
 type _CodeBuilder struct {
-	tpl    *template.Template // template
-	usings []string           // usings
+	tpl     *template.Template // template
+	usings  []string           // usings
+	builtin map[lexer.TokenType]string
 }
 
 // NewCodeBuilder parse code generate template
-func NewCodeBuilder(text string) (CodeBuilder, error) {
-	tpl, err := template.New("_CodeBuilder").Parse(text)
+func NewCodeBuilder(text string, builtin map[lexer.TokenType]string) (CodeBuilder, error) {
+
+	builder := &_CodeBuilder{
+		builtin: builtin,
+	}
+
+	funcs := template.FuncMap{
+		"enumType": builder.enumType,
+	}
+
+	tpl, err := template.New("_CodeBuilder").Funcs(funcs).Parse(text)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &_CodeBuilder{
-		tpl: tpl,
-	}, nil
+	builder.tpl = tpl
+
+	return builder, nil
+}
+
+func (builder *_CodeBuilder) enumType(enum *ast.Enum) string {
+
+	_, ok := FindAnnotation(enum, "gslang.Flag")
+
+	if ok {
+		return builder.builtin[lexer.KeyUInt32]
+	}
+
+	return builder.builtin[lexer.KeyByte]
 }
 
 func (builder *_CodeBuilder) Reset() {
