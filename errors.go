@@ -17,4 +17,6 @@ var (
 	ErrNewObj = errors.New("newobj ir error")
 
 	ErrAnnotation = errors.New("illegal annotation type")
+
+	ErrType = errors.New("illegal type")
 )

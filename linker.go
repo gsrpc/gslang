@@ -51,7 +51,7 @@ func (compiler *Compiler) Link() (err error) {
 
 		script.TypeForeach(func(gslangType ast.Type) {
 
-			linker.moveTypeAnnotation(script, gslangType)
+			linker.checkAnnotation(script, gslangType)
 		})
 
 		return true
@@ -149,7 +149,7 @@ func (linker *_Linker) linkTypeAnnotation(script *ast.Script, typeDecl ast.Type)
 	}
 }
 
-func (linker *_Linker) moveTypeAnnotation(script *ast.Script, typeDecl ast.Type) {
+func (linker *_Linker) checkAnnotation(script *ast.Script, typeDecl ast.Type) {
 	for _, annotation := range Annotations(typeDecl) {
 
 		if annotation.Type.Ref == nil {
@@ -174,6 +174,39 @@ func (linker *_Linker) moveTypeAnnotation(script *ast.Script, typeDecl ast.Type)
 			linker.D("find target :%s", target.FullName())
 		}
 	}
+
+	switch typeDecl.(type) {
+	case *ast.Contract:
+		linker.checkContractAnnotation(script, typeDecl.(*ast.Contract))
+	}
+}
+
+func (linker *_Linker) checkContractAnnotation(script *ast.Script, contract *ast.Contract) {
+
+	for _, method := range contract.Methods {
+		for _, exception := range method.Exceptions {
+			ref, ok := exception.Type.(*ast.TypeRef)
+
+			if !ok {
+				linker.errorf(ErrType, exception, "exception must be table with @Exception annotation")
+				continue
+			}
+
+			if ref.Ref != nil {
+				if _, ok := ref.Ref.(*ast.Table); !ok {
+					linker.errorf(ErrType, exception, "exception must be table with @Exception annotation")
+					continue
+				}
+
+				_, ok = FindAnnotation(ref.Ref, "gslang.Exception")
+
+				if !ok {
+					linker.errorf(ErrType, exception, "exception must be table with @Exception annotation")
+				}
+			}
+		}
+	}
+
 }
 
 func (linker *_Linker) linkType(script *ast.Script, gslangType ast.Type) {
@@ -362,6 +395,7 @@ func (linker *_Linker) linkContract(script *ast.Script, contract *ast.Contract) 
 
 		linker.linkType(script, method.Return)
 
+		// link method params
 		for _, param := range method.Params {
 
 			for _, annotation := range Annotations(param) {
@@ -370,6 +404,15 @@ func (linker *_Linker) linkContract(script *ast.Script, contract *ast.Contract) 
 			}
 
 			linker.linkType(script, param.Type)
+		}
+
+		for _, exception := range method.Exceptions {
+			for _, annotation := range Annotations(exception) {
+
+				linker.linkAnnotation(script, annotation)
+			}
+
+			linker.linkType(script, exception.Type)
 		}
 	}
 }

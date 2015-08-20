@@ -3,7 +3,9 @@ package gslang
 import (
 	"bytes"
 	"io/ioutil"
+	"strings"
 
+	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang/ast"
 	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
@@ -16,7 +18,6 @@ const (
 	ExtraComment    = "comment"
 	ExtraAnnotation = "annotation"
 )
-
 
 func _setNodePos(node ast.Node, start lexer.Position, end lexer.Position) {
 	node.SetExtra(ExtraStartPos, start)
@@ -177,4 +178,103 @@ func (compiler *Compiler) Compile(filepath string) (err error) {
 	compiler.parse(lexer.NewLexer(filepath, bytes.NewBuffer(content)), compiler.errorHandler)
 
 	return
+}
+
+// Visitor gslang CodeGen
+type Visitor interface {
+	BeginScript(script *ast.Script)
+	// get using template
+	Using(using *ast.Using)
+
+	Table(tableType *ast.Table)
+
+	Exception(tableType *ast.Table)
+
+	Annotation(annotation *ast.Table)
+
+	Enum(enum *ast.Enum)
+
+	Contract(contract *ast.Contract)
+	//
+	EndScript()
+}
+
+type _Visitor struct {
+	gslogger.Log             // log APIs
+	codeGen      Visitor     //implement
+	module       *ast.Module // generate code module
+}
+
+// Visit visit ast tree
+func (compiler *Compiler) Visit(codeGen Visitor) (err error) {
+
+	defer func() {
+		if e := recover(); e != nil {
+
+			gserr, ok := e.(gserrors.GSError)
+
+			if ok {
+				err = gserr
+			} else {
+				err = gserrors.Newf(e.(error), "catch unknown error")
+			}
+		}
+	}()
+
+	gen := &_Visitor{
+		Log:     gslogger.Get("codegen"),
+		codeGen: codeGen,
+		module:  compiler.module,
+	}
+
+	gen.visit()
+
+	return
+}
+
+func (codeGen *_Visitor) visit() {
+
+	codeGen.module.Foreach(func(script *ast.Script) bool {
+
+		codeGen.codeGen.BeginScript(script)
+
+		script.UsingForeach(func(using *ast.Using) {
+
+			if strings.HasPrefix(using.Name(), "gslang") || strings.HasPrefix(using.Name(), "gslang.annotations") {
+				return
+			}
+
+			codeGen.codeGen.Using(using)
+		})
+
+		script.TypeForeach(func(typeDecl ast.Type) {
+			switch typeDecl.(type) {
+			case *ast.Table:
+				_, ok := FindAnnotation(typeDecl, "gslang.annotations.Usage")
+
+				if ok {
+					codeGen.codeGen.Annotation(typeDecl.(*ast.Table))
+					break
+				}
+
+				_, ok = FindAnnotation(typeDecl, "gslang.Exception")
+
+				if ok {
+					codeGen.codeGen.Exception(typeDecl.(*ast.Table))
+					break
+				}
+
+				codeGen.codeGen.Table(typeDecl.(*ast.Table))
+
+			case *ast.Enum:
+				codeGen.codeGen.Enum(typeDecl.(*ast.Enum))
+			case *ast.Contract:
+				codeGen.codeGen.Contract(typeDecl.(*ast.Contract))
+			}
+		})
+
+		codeGen.codeGen.EndScript()
+
+		return true
+	})
 }

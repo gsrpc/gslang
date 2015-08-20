@@ -142,12 +142,18 @@ type Param struct {
 	Type Type
 }
 
+// Exception .
+type Exception struct {
+	_Node
+	Type Type
+}
+
 // Method .
 type Method struct {
 	_Node
-	Return     Type     // return type
-	Params     []*Param // Params type list
-	Exceptions []Type   // exception list
+	Return     Type         // return type
+	Params     []*Param     // Params type list
+	Exceptions []*Exception // exception list
 }
 
 // Param .
@@ -163,8 +169,17 @@ func (method *Method) Param(name string) (*Param, bool) {
 }
 
 // NewException .
-func (method *Method) NewException(typeDecl Type) {
-	method.Exceptions = append(method.Exceptions, typeDecl)
+func (method *Method) NewException(typeDecl Type) *Exception {
+
+	exception := &Exception{
+		Type: typeDecl,
+	}
+
+	exception._init(typeDecl.Name())
+
+	method.Exceptions = append(method.Exceptions, exception)
+
+	return exception
 }
 
 // NewParam .

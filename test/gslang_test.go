@@ -8,7 +8,6 @@ import (
 
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang"
-	"github.com/gsdocker/gslang/ast"
 	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
 )
@@ -16,22 +15,6 @@ import (
 var (
 	log = gslogger.Get("gslang")
 )
-
-type _TestCodeGen struct {
-}
-
-// get using template
-func (codegen *_TestCodeGen) Using(using *ast.Using) string {
-
-	log.D("%s", using.Ref.FullName())
-
-	return ""
-}
-
-// get new lines string
-func (codegen *_TestCodeGen) NewLine() string {
-	return "\n"
-}
 
 func TestToken(t *testing.T) {
 
@@ -86,12 +69,6 @@ func TestParser(t *testing.T) {
 	}
 
 	err = compiler.Link()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = compiler.Gen(&_TestCodeGen{})
 
 	if err != nil {
 		t.Fatal(err)

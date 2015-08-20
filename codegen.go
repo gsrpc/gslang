@@ -3,92 +3,65 @@ package gslang
 import (
 	"text/template"
 
-	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslang/ast"
-	"github.com/gsdocker/gslogger"
 )
 
-// CodeGen gslang CodeGen
-type CodeGen interface {
-	BeginScript(script *ast.Script)
-	// get using template
-	Using(using *ast.Using)
+// CodeTarget language code target
+type CodeTarget interface {
+	Using() *template.Template
+	Table() *template.Template
+	Exception() *template.Template
+	Annotations() *template.Template
+	Enum() *template.Template
+	Contract() *template.Template
 
-	Table(tableType *ast.Table)
-
-	Annotation(annotation *ast.Table)
-
-	Enum(enum *ast.Enum)
-
-	Contract(contract *ast.Contract)
-	//
-	EndScript()
+	Begin()
+	CreateScript(script *ast.Script, header string)
+	End()
 }
 
 type _CodeGen struct {
-	gslogger.Log                    // log APIs
-	codeGen      CodeGen            //implement
-	module       *ast.Module        // generate code module
-	usingTmplate *template.Template // using template
+	target CodeTarget
 }
 
-// Gen generate codes
-func (compiler *Compiler) Gen(codeGen CodeGen) (err error) {
+// Gen generate code
+func (compiler *Compiler) Gen(target CodeTarget) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
-
-			gserr, ok := e.(gserrors.GSError)
-
-			if ok {
-				err = gserr
-			} else {
-				err = gserrors.Newf(e.(error), "catch unknown error")
-			}
+			err = e.(error)
 		}
 	}()
 
-	gen := &_CodeGen{
-		Log:     gslogger.Get("codegen"),
-		codeGen: codeGen,
-		module:  compiler.module,
+	codegen := &_CodeGen{
+		target: target,
 	}
 
-	gen.Gen()
-
-	return
+	return compiler.Visit(codegen)
 }
 
-func (codeGen *_CodeGen) Gen() {
+func (codeGen *_CodeGen) BeginScript(script *ast.Script) {
 
-	codeGen.module.Foreach(func(script *ast.Script) bool {
+}
 
-		codeGen.codeGen.BeginScript(script)
+func (codeGen *_CodeGen) Using(using *ast.Using) {
 
-		script.UsingForeach(func(using *ast.Using) {
-			codeGen.codeGen.Using(using)
-		})
+}
+func (codeGen *_CodeGen) Table(tableType *ast.Table) {
 
-		script.TypeForeach(func(typeDecl ast.Type) {
-			switch typeDecl.(type) {
-			case *ast.Table:
-				_, ok := FindAnnotation(typeDecl, "gslang.annotations.Usage")
+}
+func (codeGen *_CodeGen) Exception(tableType *ast.Table) {
 
-				if ok {
-					codeGen.codeGen.Annotation(typeDecl.(*ast.Table))
-				} else {
-					codeGen.codeGen.Table(typeDecl.(*ast.Table))
-				}
+}
+func (codeGen *_CodeGen) Annotation(annotation *ast.Table) {
 
-			case *ast.Enum:
-				codeGen.codeGen.Enum(typeDecl.(*ast.Enum))
-			case *ast.Contract:
-				codeGen.codeGen.Contract(typeDecl.(*ast.Contract))
-			}
-		})
+}
+func (codeGen *_CodeGen) Enum(enum *ast.Enum) {
 
-		codeGen.codeGen.EndScript()
+}
+func (codeGen *_CodeGen) Contract(contract *ast.Contract) {
 
-		return true
-	})
+}
+func (codeGen *_CodeGen) EndScript() {
+
 }

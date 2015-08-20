@@ -392,7 +392,11 @@ func (parser *Parser) parseExceptions(method *ast.Method) {
 
 		typeDecl := parser.expectTypeDecl("expect exception type")
 
-		method.NewException(typeDecl)
+		exception := method.NewException(typeDecl)
+
+		start, end := Pos(typeDecl)
+
+		_setNodePos(exception, start, end)
 
 		token := parser.peek()
 

@@ -17,7 +17,6 @@ table Description {
     string LongText;
 }
 
-
 @Usage(Target.Method)
 table Async {
 }
