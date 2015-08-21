@@ -139,6 +139,7 @@ func (table *Table) NewField(name string, typeDecl Type) (*Field, bool) {
 // Param .
 type Param struct {
 	_Node
+	ID   int
 	Type Type
 }
 
@@ -151,9 +152,15 @@ type Exception struct {
 // Method .
 type Method struct {
 	_Node
+	ID         int          /// id
 	Return     Type         // return type
 	Params     []*Param     // Params type list
 	Exceptions []*Exception // exception list
+}
+
+// ParamsCount .
+func (method *Method) ParamsCount() int {
+	return len(method.Params)
 }
 
 // Param .
@@ -188,7 +195,10 @@ func (method *Method) NewParam(name string, typeDecl Type) (*Param, bool) {
 		return param, false
 	}
 
-	param := &Param{Type: typeDecl}
+	param := &Param{
+		ID:   len(method.Params),
+		Type: typeDecl,
+	}
 
 	param._init(name)
 
@@ -321,7 +331,9 @@ func (contract *Contract) NewMethod(name string) (*Method, bool) {
 		return method, false
 	}
 
-	method := &Method{}
+	method := &Method{
+		ID: len(contract.Methods),
+	}
 
 	method._init(name)
 
