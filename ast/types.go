@@ -147,6 +147,7 @@ type Param struct {
 type Exception struct {
 	_Node
 	Type Type
+	ID   int8
 }
 
 // Method .
@@ -180,6 +181,7 @@ func (method *Method) NewException(typeDecl Type) *Exception {
 
 	exception := &Exception{
 		Type: typeDecl,
+		ID:   int8(len(method.Exceptions)),
 	}
 
 	exception._init(typeDecl.Name())

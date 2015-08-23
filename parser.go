@@ -441,6 +441,14 @@ func (parser *Parser) parseParams(method *ast.Method) {
 		}
 
 		_setNodePos(param, token.Start, nameToken.End)
+
+		token = parser.peek()
+
+		if token.Type != lexer.TokenType(',') {
+			break
+		}
+
+		parser.next()
 	}
 
 	parser.expectf(lexer.TokenType(')'), "method param table must end with )")
