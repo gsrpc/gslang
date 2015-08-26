@@ -5,8 +5,15 @@ using gslang.annotations.Usage; // tail comment
 // header line comment
 using gslang.Exception;
 using gslang.Flag;
-using gslang.Duration;
-using gslang.TimeUnit;
+
+enum TimeUnit{
+    Second
+}
+
+table Duration {
+    int32 Value;
+    TimeUnit Unit;
+}
 
 
 // Description define new Attribute
@@ -54,10 +61,7 @@ contract HttpREST {
 }
 
 // remote exception
-@Flag
+
 @Exception
-enum CodeException {
-    /*test*/
-    Success, //test 2
-    Unknown(2)
+table CodeException {
 }

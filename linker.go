@@ -170,13 +170,13 @@ func (linker *_Linker) checkAnnotation(script *ast.Script, typeDecl ast.Type) {
 
 		scriptConstant := int64(linker.Eval().EvalEnumConstant("gslang.annotations.Target", "Script"))
 
-		packageConstant := int64(linker.Eval().EvalEnumConstant("gslang.annotations.Target", "Package"))
+		moduleConstant := int64(linker.Eval().EvalEnumConstant("gslang.annotations.Target", "Module"))
 
 		if scriptConstant&val != 0 {
 			linker.D("move anntotation(%s) to script(%s)", annotation, script)
 			_RemoveAnnotation(typeDecl, annotation)
 			_AttachAnnotation(script, annotation)
-		} else if packageConstant&val != 0 {
+		} else if moduleConstant&val != 0 {
 			linker.D("move anntotation(%s) to module(%s)", annotation, script.Module)
 			_RemoveAnnotation(typeDecl, annotation)
 			_AttachAnnotation(script.Module, annotation)
