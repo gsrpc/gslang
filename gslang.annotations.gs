@@ -5,7 +5,7 @@ using gslang.Flag;
 // attribute target flag
 @Flag
 enum Target{
-    Package,Script,Table,Method,Param,Enum
+    Module(1),Script(2),Table(4),Method(8),Param(16),Enum(32)
 }
 
 // attribute Usage attribute

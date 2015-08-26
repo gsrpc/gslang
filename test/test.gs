@@ -10,7 +10,7 @@ using gslang.TimeUnit;
 
 
 // Description define new Attribute
-@Usage(Target.Package|Target.Script)
+@Usage(Target.Module|Target.Script)
 table Description {
     string Text; // Description text
     //long texts

@@ -307,7 +307,7 @@ func (parser *Parser) expectTable(fmtstring string, args ...interface{}) *ast.Ta
 func (parser *Parser) attachAnnotation(node ast.Node) {
 
 	if parser.annotationStack != nil {
-		_AttachAnnotation(node, parser.annotationStack)
+		_AttachAnnotation(node, parser.annotationStack...)
 		parser.D("attach annotations %v to %s", parser.annotationStack, node)
 		parser.annotationStack = nil
 	}
@@ -635,6 +635,8 @@ func (parser *Parser) parseArgsTable() *ast.ArgsTable {
 			if parser.peek().Type != lexer.TokenType(',') {
 				break
 			}
+
+			parser.next()
 		}
 
 	} else {

@@ -19,4 +19,6 @@ var (
 	ErrAnnotation = errors.New("illegal annotation type")
 
 	ErrType = errors.New("illegal type")
+
+	ErrEval = errors.New("compile time eval error")
 )

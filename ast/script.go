@@ -12,14 +12,16 @@ type Script struct {
 	Package string            // script's package name
 	using   map[string]*Using // using instruction list
 	types   map[string]Type   // tables
+	Module  *Module           // Module
 }
 
 // NewScript .
 func (module *Module) NewScript(name string) *Script {
 
 	script := &Script{
-		using: make(map[string]*Using),
-		types: make(map[string]Type),
+		using:  make(map[string]*Using),
+		types:  make(map[string]Type),
+		Module: module,
 	}
 
 	script._init(name)

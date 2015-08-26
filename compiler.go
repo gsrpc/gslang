@@ -41,7 +41,7 @@ func _AttachComment(node ast.Node, comment *ast.Comment) bool {
 	return false
 }
 
-func _AttachAnnotation(node ast.Node, annotations []*ast.Annotation) {
+func _AttachAnnotation(node ast.Node, annotations ...*ast.Annotation) {
 
 	anns := Annotations(node)
 
@@ -60,6 +60,22 @@ func Annotations(node ast.Node) (anns []*ast.Annotation) {
 	}
 
 	return
+}
+
+// Annotations .
+func _RemoveAnnotation(node ast.Node, annotation *ast.Annotation) {
+
+	anns := Annotations(node)
+
+	var newanns []*ast.Annotation
+
+	for _, ann := range anns {
+		if ann == annotation {
+			continue
+		}
+		newanns = append(newanns, ann)
+	}
+	node.SetExtra(ExtraAnnotation, anns)
 }
 
 // FindAnnotation .
@@ -151,7 +167,7 @@ func NewCompiler(name string, errorHandler ErrorHandler) *Compiler {
 		Log:          gslogger.Get("compiler"),
 		module:       module,
 		errorHandler: errorHandler,
-		eval:         newEval(module),
+		eval:         newEval(errorHandler, module),
 	}
 
 }
@@ -182,27 +198,28 @@ func (compiler *Compiler) Compile(filepath string) (err error) {
 
 // Visitor gslang CodeGen
 type Visitor interface {
-	BeginScript(script *ast.Script)
+	BeginScript(compiler *Compiler, script *ast.Script)
 	// get using template
-	Using(using *ast.Using)
+	Using(compiler *Compiler, using *ast.Using)
 
-	Table(tableType *ast.Table)
+	Table(compiler *Compiler, tableType *ast.Table)
 
-	Exception(tableType *ast.Table)
+	Exception(compiler *Compiler, tableType *ast.Table)
 
-	Annotation(annotation *ast.Table)
+	Annotation(compiler *Compiler, annotation *ast.Table)
 
-	Enum(enum *ast.Enum)
+	Enum(compiler *Compiler, enum *ast.Enum)
 
-	Contract(contract *ast.Contract)
+	Contract(compiler *Compiler, contract *ast.Contract)
 	//
-	EndScript()
+	EndScript(compiler *Compiler)
 }
 
 type _Visitor struct {
 	gslogger.Log             // log APIs
 	codeGen      Visitor     //implement
 	module       *ast.Module // generate code module
+	compiler     *Compiler
 }
 
 // Visit visit ast tree
@@ -222,9 +239,10 @@ func (compiler *Compiler) Visit(codeGen Visitor) (err error) {
 	}()
 
 	gen := &_Visitor{
-		Log:     gslogger.Get("codegen"),
-		codeGen: codeGen,
-		module:  compiler.module,
+		Log:      gslogger.Get("codegen"),
+		codeGen:  codeGen,
+		module:   compiler.module,
+		compiler: compiler,
 	}
 
 	gen.visit()
@@ -236,7 +254,7 @@ func (codeGen *_Visitor) visit() {
 
 	codeGen.module.Foreach(func(script *ast.Script) bool {
 
-		codeGen.codeGen.BeginScript(script)
+		codeGen.codeGen.BeginScript(codeGen.compiler, script)
 
 		script.UsingForeach(func(using *ast.Using) {
 
@@ -244,7 +262,7 @@ func (codeGen *_Visitor) visit() {
 				return
 			}
 
-			codeGen.codeGen.Using(using)
+			codeGen.codeGen.Using(codeGen.compiler, using)
 		})
 
 		script.TypeForeach(func(typeDecl ast.Type) {
@@ -253,27 +271,27 @@ func (codeGen *_Visitor) visit() {
 				_, ok := FindAnnotation(typeDecl, "gslang.annotations.Usage")
 
 				if ok {
-					codeGen.codeGen.Annotation(typeDecl.(*ast.Table))
+					codeGen.codeGen.Annotation(codeGen.compiler, typeDecl.(*ast.Table))
 					break
 				}
 
 				_, ok = FindAnnotation(typeDecl, "gslang.Exception")
 
 				if ok {
-					codeGen.codeGen.Exception(typeDecl.(*ast.Table))
+					codeGen.codeGen.Exception(codeGen.compiler, typeDecl.(*ast.Table))
 					break
 				}
 
-				codeGen.codeGen.Table(typeDecl.(*ast.Table))
+				codeGen.codeGen.Table(codeGen.compiler, typeDecl.(*ast.Table))
 
 			case *ast.Enum:
-				codeGen.codeGen.Enum(typeDecl.(*ast.Enum))
+				codeGen.codeGen.Enum(codeGen.compiler, typeDecl.(*ast.Enum))
 			case *ast.Contract:
-				codeGen.codeGen.Contract(typeDecl.(*ast.Contract))
+				codeGen.codeGen.Contract(codeGen.compiler, typeDecl.(*ast.Contract))
 			}
 		})
 
-		codeGen.codeGen.EndScript()
+		codeGen.codeGen.EndScript(codeGen.compiler)
 
 		return true
 	})

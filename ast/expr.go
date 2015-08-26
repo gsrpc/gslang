@@ -71,6 +71,18 @@ func (args *ArgsTable) Arg(index int) Expr {
 	return args.args[index]
 }
 
+// NamedArg .
+func (args *ArgsTable) NamedArg(name string) (Expr, bool) {
+	for _, arg := range args.args {
+		namedArg := arg.(*NamedArg)
+		if namedArg.Name() == name {
+			return namedArg.Arg, true
+		}
+	}
+
+	return nil, false
+}
+
 // Count .
 func (args *ArgsTable) Count() int {
 	return len(args.args)
@@ -131,7 +143,8 @@ func NewBoolean(val bool) *Boolean {
 
 // ConstantRef .
 type ConstantRef struct {
-	_Node // Mixin default node implement
+	_Node      // Mixin default node implement
+	Value Expr // constant val
 }
 
 // NewConstantRef .

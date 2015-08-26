@@ -166,12 +166,20 @@ func (linker *_Linker) checkAnnotation(script *ast.Script, typeDecl ast.Type) {
 			continue
 		}
 
-		linker.Eval().EvalInt(usage.Args.Arg(0))
+		val := linker.Eval().EvalInt(usage.Args.Arg(0))
 
-		target, ok := linker.Eval().GetType("gslang.annotations.Target")
+		scriptConstant := int64(linker.Eval().EvalEnumConstant("gslang.annotations.Target", "Script"))
 
-		if ok {
-			linker.D("find target :%s", target.FullName())
+		packageConstant := int64(linker.Eval().EvalEnumConstant("gslang.annotations.Target", "Package"))
+
+		if scriptConstant&val != 0 {
+			linker.D("move anntotation(%s) to script(%s)", annotation, script)
+			_RemoveAnnotation(typeDecl, annotation)
+			_AttachAnnotation(script, annotation)
+		} else if packageConstant&val != 0 {
+			linker.D("move anntotation(%s) to module(%s)", annotation, script.Module)
+			_RemoveAnnotation(typeDecl, annotation)
+			_AttachAnnotation(script.Module, annotation)
 		}
 	}
 
@@ -369,6 +377,7 @@ func (linker *_Linker) linkConstantRef(script *ast.Script, constantRef *ast.Cons
 		for _, constant := range enum.Constants {
 
 			if constant.Name() == name {
+				constantRef.Value = constant
 				return
 			}
 		}
