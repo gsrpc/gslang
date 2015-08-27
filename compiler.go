@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/gsdocker/gserrors"
-	"github.com/gsdocker/gslang/ast"
-	"github.com/gsdocker/gslang/lexer"
+	"github.com/gsrpc/gslang/ast"
+	"github.com/gsrpc/gslang/lexer"
 	"github.com/gsdocker/gslogger"
 )
 

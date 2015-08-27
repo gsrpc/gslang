@@ -3,7 +3,7 @@ package ast
 import (
 	"fmt"
 
-	"github.com/gsdocker/gslang/lexer"
+	"github.com/gsrpc/gslang/lexer"
 )
 
 // Type .

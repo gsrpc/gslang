@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/gsdocker/gserrors"
-	"github.com/gsdocker/gslang"
-	"github.com/gsdocker/gslang/lexer"
 	"github.com/gsdocker/gslogger"
+	"github.com/gsrpc/gslang"
+	"github.com/gsrpc/gslang/lexer"
 )
 
 var (

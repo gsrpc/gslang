@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gsdocker/gslang/lexer"
+	"github.com/gsrpc/gslang/lexer"
 )
 
 // errors .
