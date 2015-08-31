@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/gsdocker/gserrors"
+	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gslang/ast"
 	"github.com/gsrpc/gslang/lexer"
-	"github.com/gsdocker/gslogger"
 )
 
 // Extra key list
@@ -198,7 +198,7 @@ func (compiler *Compiler) Compile(filepath string) (err error) {
 
 // Visitor gslang CodeGen
 type Visitor interface {
-	BeginScript(compiler *Compiler, script *ast.Script)
+	BeginScript(compiler *Compiler, script *ast.Script) bool
 	// get using template
 	Using(compiler *Compiler, using *ast.Using)
 
@@ -254,7 +254,9 @@ func (codeGen *_Visitor) visit() {
 
 	codeGen.module.Foreach(func(script *ast.Script) bool {
 
-		codeGen.codeGen.BeginScript(codeGen.compiler, script)
+		if !codeGen.codeGen.BeginScript(codeGen.compiler, script) {
+			return true
+		}
 
 		script.UsingForeach(func(using *ast.Using) {
 
