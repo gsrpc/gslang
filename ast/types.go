@@ -13,6 +13,12 @@ type Type interface {
 	Package() string
 }
 
+// TypeDecl .
+type TypeDecl interface {
+	Type
+	Module() *Module
+}
+
 // TypeRef .
 type TypeRef struct {
 	_Node
@@ -98,6 +104,11 @@ func (script *Script) NewTable(name string) (Type, bool) {
 	script.types[name] = table
 
 	return table, true
+}
+
+// Module .
+func (table *Table) Module() *Module {
+	return table.Script.Module
 }
 
 // FullName .
@@ -244,6 +255,11 @@ func (enum *Enum) Package() string {
 	return enum.script.Package
 }
 
+// Module .
+func (enum *Enum) Module() *Module {
+	return enum.script.Module
+}
+
 // FullName .
 func (enum *Enum) FullName() string {
 	return enum.script.Package + "." + enum.Name()
@@ -309,6 +325,11 @@ func (script *Script) NewContract(name string) (Type, bool) {
 // Package .
 func (contract *Contract) Package() string {
 	return contract.script.Package
+}
+
+// Module .
+func (contract *Contract) Module() *Module {
+	return contract.script.Module
 }
 
 // FullName .

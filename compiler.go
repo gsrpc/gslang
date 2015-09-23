@@ -101,6 +101,29 @@ func FindAnnotation(node ast.Node, name string) (*ast.Annotation, bool) {
 	return nil, false
 }
 
+// FindAnnotations .
+func FindAnnotations(node ast.Node, name string) (retval []*ast.Annotation) {
+
+	val, ok := node.GetExtra(ExtraAnnotation)
+
+	if ok {
+		anns := val.([]*ast.Annotation)
+
+		for _, ann := range anns {
+
+			if ann.Type.Ref == nil {
+				continue
+			}
+
+			if ann.Type.Ref.FullName() == name {
+				retval = append(retval, ann)
+			}
+		}
+	}
+
+	return
+}
+
 // Pos .
 func Pos(node ast.Node) (start lexer.Position, end lexer.Position) {
 	val, ok := node.GetExtra(ExtraStartPos)

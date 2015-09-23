@@ -13,7 +13,7 @@ table Exception{
 table Flag{
 }
 
-@Usage(Target.Script)
+@Usage(Target.Module)
 table Lang{
     string Name; // language name
     string Package; //define language package name
