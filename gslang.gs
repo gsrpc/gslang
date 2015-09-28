@@ -14,7 +14,8 @@ table Flag{
 }
 
 @Usage(Target.Module)
-table Lang{
-    string Name; // language name
-    string Package; //define language package name
+table Package{
+    string Lang; // language name
+    string Name;
+    string Redirect; //define language package name
 }
