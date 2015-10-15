@@ -13,6 +13,10 @@ table Exception{
 table Flag{
 }
 
+// annotation table all fields are optional
+@Usage(Target.Table)
+table Optional{}
+
 @Usage(Target.Module)
 table Package{
     string Lang; // language name
