@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/gsdocker/gserrors"
-	"github.com/gsrpc/gslang/ast"
 	"github.com/gsdocker/gslogger"
+	"github.com/gsrpc/gslang/ast"
 )
 
 type _Linker struct {
@@ -262,6 +262,16 @@ func (linker *_Linker) linkTypeRef(script *ast.Script, typeRef *ast.TypeRef) {
 		return
 	}
 
+	linkedType, ok = linker.types[typeRef.Name()]
+
+	if ok {
+		typeRef.Ref = linkedType
+
+		linker.D("found import types %s", linkedType)
+
+		return
+	}
+
 	linker.errorf(ErrTypeNotFound, typeRef, "unknown type reference :%s", typeRef)
 }
 
@@ -403,6 +413,16 @@ func (linker *_Linker) linkContract(script *ast.Script, contract *ast.Contract) 
 		}
 
 		linker.linkType(script, method.Return)
+
+		if IsAsync(method) {
+			if NotVoid(method.Return) {
+				linker.errorf(ErrAnnotation, method, "gslang.Async can't mark those method which's return type is not void")
+			}
+
+			if method.Exceptions != nil {
+				linker.errorf(ErrAnnotation, method, "gslang.Async can't mark those method which has exception list")
+			}
+		}
 
 		// link method params
 		for _, param := range method.Params {
