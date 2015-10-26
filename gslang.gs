@@ -5,17 +5,14 @@ using gslang.annotations.Usage;
 
 // gslang exception attribute
 @Usage(Target.Table)
-table Exception{
-}
-
+table Exception{}
 
 @Usage(Target.Enum)
-table Flag{
-}
+table Flag{}
 
-// annotation table all fields are optional
+// POD indicate serializer this table has compact struct
 @Usage(Target.Table)
-table Optional{}
+table POD{}
 
 @Usage(Target.Module)
 table Package{
@@ -23,3 +20,8 @@ table Package{
     string Name;
     string Redirect; //define language package name
 }
+
+
+// indicate this method don't expect call response
+@Usage(Target.Method)
+table Async {}
