@@ -11,6 +11,7 @@ type Type interface {
 	Node
 	FullName() string
 	Package() string
+	Script() string
 }
 
 // TypeDecl .
@@ -48,6 +49,11 @@ func (ref *TypeRef) Package() string {
 	return ""
 }
 
+// Script .
+func (ref *TypeRef) Script() string {
+	return ""
+}
+
 // BuiltinType .
 type BuiltinType struct {
 	_Node
@@ -75,6 +81,11 @@ func (builtin *BuiltinType) Package() string {
 	return ""
 }
 
+// Script .
+func (builtin *BuiltinType) Script() string {
+	return ""
+}
+
 // Field .
 type Field struct {
 	_Node
@@ -85,7 +96,7 @@ type Field struct {
 type Table struct {
 	_Node           // Mixin default node implement
 	Fields []*Field // table fields
-	Script *Script  // script belongs to
+	script *Script  // script belongs to
 }
 
 // NewTable .
@@ -96,7 +107,7 @@ func (script *Script) NewTable(name string) (Type, bool) {
 	}
 
 	table := &Table{
-		Script: script,
+		script: script,
 	}
 
 	table._init(name)
@@ -108,17 +119,22 @@ func (script *Script) NewTable(name string) (Type, bool) {
 
 // Module .
 func (table *Table) Module() *Module {
-	return table.Script.Module
+	return table.script.Module
 }
 
 // FullName .
 func (table *Table) FullName() string {
-	return table.Script.Package + "." + table.Name()
+	return table.script.Package + "." + table.Name()
 }
 
 // Package .
 func (table *Table) Package() string {
-	return table.Script.Package
+	return table.script.Package
+}
+
+// Script .
+func (table *Table) Script() string {
+	return table.script.String()
 }
 
 // Field .
@@ -265,6 +281,11 @@ func (enum *Enum) FullName() string {
 	return enum.script.Package + "." + enum.Name()
 }
 
+// Script .
+func (enum *Enum) Script() string {
+	return enum.script.String()
+}
+
 // Constant .
 func (enum *Enum) Constant(name string) (*EnumConstant, bool) {
 	for _, constant := range enum.Constants {
@@ -337,6 +358,11 @@ func (contract *Contract) FullName() string {
 	return contract.script.Package + "." + contract.Name()
 }
 
+// Script .
+func (contract *Contract) Script() string {
+	return contract.script.String()
+}
+
 // Method .
 func (contract *Contract) Method(name string) (*Method, bool) {
 	for _, method := range contract.Methods {
@@ -397,4 +423,9 @@ func (seq *Seq) FullName() string {
 // Package .
 func (seq *Seq) Package() string {
 	return "gslang"
+}
+
+// Script .
+func (seq *Seq) Script() string {
+	return "gslang.gs"
 }
