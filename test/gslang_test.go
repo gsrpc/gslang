@@ -62,7 +62,7 @@ func TestParser(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = compiler.Compile("../gslang.annotations.gs")
+	err = compiler.Compile("../annotations.gs")
 
 	if err != nil {
 		t.Fatal(err)
