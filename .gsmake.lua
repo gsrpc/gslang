@@ -3,7 +3,7 @@ name "github.com/gsrpc/gslang"
 plugin "github.com/gsmake/golang"
 
 
-golang = {
+properties.golang = {
     dependencies = {
         { name = "github.com/gsdocker/gsos"     };
         { name = "github.com/gsdocker/gserrors" };
