@@ -91,6 +91,8 @@ func (compiler *Compiler) Compile(filepath string) (err error) {
 
 // Visitor gslang CodeGen
 type Visitor interface {
+	Begin()
+
 	BeginScript(compiler *Compiler, script *ast.Script) bool
 	// get using template
 	Using(compiler *Compiler, using *ast.Using)
@@ -104,6 +106,8 @@ type Visitor interface {
 	Contract(compiler *Compiler, contract *ast.Contract)
 	//
 	EndScript(compiler *Compiler)
+
+	End()
 }
 
 type _Visitor struct {
@@ -143,6 +147,8 @@ func (compiler *Compiler) Visit(codeGen Visitor) (err error) {
 
 func (codeGen *_Visitor) visit() {
 
+	codeGen.codeGen.Begin()
+
 	codeGen.module.Foreach(func(script *ast.Script) bool {
 
 		if !codeGen.codeGen.BeginScript(codeGen.compiler, script) {
@@ -181,4 +187,6 @@ func (codeGen *_Visitor) visit() {
 
 		return true
 	})
+
+	codeGen.codeGen.End()
 }
